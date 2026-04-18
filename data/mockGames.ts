@@ -23,7 +23,8 @@ export const games: Game[] = [
   {
     id: 1,
     title: "Cyberpunk 2077",
-    image: "https://cdn.akamai.steamstatic.com/steam/apps/1091500/header.jpg",
+    image:
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/library_600x900_2x.jpg",
     price: 1499,
     originalPrice: 2999,
     description:
@@ -54,7 +55,8 @@ export const games: Game[] = [
   {
     id: 2,
     title: "Elden Ring",
-    image: "https://cdn.akamai.steamstatic.com/steam/apps/1245620/header.jpg",
+    image:
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1245620/library_600x900_2x.jpg",
     price: 2399,
     originalPrice: 3599,
     description:
@@ -85,7 +87,8 @@ export const games: Game[] = [
   {
     id: 3,
     title: "Hogwarts Legacy",
-    image: "https://cdn.akamai.steamstatic.com/steam/apps/990080/header.jpg",
+    image:
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/990080/library_600x900_2x.jpg",
     price: 1999,
     originalPrice: 3499,
     description:
@@ -116,7 +119,8 @@ export const games: Game[] = [
   {
     id: 4,
     title: "The Witcher 3: Wild Hunt",
-    image: "https://cdn.akamai.steamstatic.com/steam/apps/292030/header.jpg",
+    image:
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/292030/library_600x900_2x.jpg",
     price: 749,
     originalPrice: 1499,
     description:
@@ -147,7 +151,8 @@ export const games: Game[] = [
   {
     id: 5,
     title: "Red Dead Redemption 2",
-    image: "https://cdn.akamai.steamstatic.com/steam/apps/1174180/header.jpg",
+    image:
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1174180/library_600x900_2x.jpg",
     price: 1599,
     originalPrice: 3199,
     description:
@@ -178,7 +183,8 @@ export const games: Game[] = [
   {
     id: 6,
     title: "Resident Evil 4",
-    image: "https://cdn.akamai.steamstatic.com/steam/apps/2050650/header.jpg",
+    image:
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/library_600x900_2x.jpg",
     price: 1899,
     originalPrice: 2999,
     description:
@@ -209,7 +215,8 @@ export const games: Game[] = [
   {
     id: 7,
     title: "Baldur’s Gate 3",
-    image: "https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg",
+    image:
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1086940/library_600x900_2x.jpg",
     price: 2999,
     originalPrice: 3999,
     description:
@@ -234,7 +241,8 @@ export const games: Game[] = [
   {
     id: 8,
     title: "Stray",
-    image: "https://cdn.akamai.steamstatic.com/steam/apps/1332010/header.jpg",
+    image:
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1332010/library_600x900_2x.jpg",
     price: 1299,
     originalPrice: 1999,
     description:

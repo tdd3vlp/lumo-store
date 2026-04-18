@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "@/store/useStore";
 
@@ -103,34 +104,6 @@ function CloseIcon() {
   );
 }
 
-function MobileMenuItem({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value?: number;
-}) {
-  return (
-    <button
-      type="button"
-      className="flex w-full items-center justify-between rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-left text-[#4b3a70] shadow-sm transition hover:bg-white"
-    >
-      <span className="flex items-center gap-3">
-        <span className="text-[#6c5c90]">{icon}</span>
-        <span className="text-sm font-medium">{label}</span>
-      </span>
-
-      {typeof value === "number" && (
-        <span className="rounded-full bg-[#f3edff] px-2.5 py-1 text-xs font-semibold text-[#7c4dff]">
-          {value}
-        </span>
-      )}
-    </button>
-  );
-}
-
 export default function Header() {
   const favorites = useStore((state) => state.favorites);
   const cart = useStore((state) => state.cart);
@@ -143,6 +116,8 @@ export default function Header() {
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
     [cart],
   );
+
+  const hasFavorites = favorites.length > 0;
 
   useEffect(() => {
     if (!isMobileMenuOpen) return;
@@ -159,14 +134,14 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-50 border-b border-white/40 bg-white/55 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 md:gap-4 md:px-6 lg:px-8">
-          <div className="min-w-0 shrink-0">
+          <Link href="/" className="inline-block group">
             <h1 className="text-xl font-black tracking-tight text-[#2a1f44] md:text-2xl">
-              <span className="text-[#7c4dff]">L</span>umo
+              <span className="text-[#7c4dff] transition group-hover:brightness-110">
+                L
+              </span>
+              umo
             </h1>
-            <p className="mt-1 hidden text-xs text-[#7d6d99] md:block md:text-sm">
-              Игры, которые идеально ложатся в твой баланс
-            </p>
-          </div>
+          </Link>
 
           <div className="flex-1">
             <div className="flex items-center gap-3 rounded-2xl border border-[rgba(125,81,255,0.12)] bg-white/80 px-4 py-3 shadow-[0_10px_24px_rgba(143,92,255,0.08)]">
@@ -193,25 +168,29 @@ export default function Header() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm font-medium text-[#4b3a70] shadow-sm transition hover:bg-white"
+            <Link
+              href="/favorites"
+              className={`flex items-center gap-2 rounded-2xl border border-white/60 px-4 py-2.5 text-sm font-medium shadow-sm transition ${
+                hasFavorites
+                  ? "bg-[#f3edff] text-[#7c4dff]"
+                  : "bg-white/70 text-[#4b3a70]"
+              }`}
             >
               <HeartIcon />
               <span>{favorites.length}</span>
-            </button>
+            </Link>
 
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm font-medium text-[#4b3a70] shadow-sm transition hover:bg-white"
+            <Link
+              href="/cart"
+              className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm font-medium text-[#4b3a70] shadow-sm transition"
             >
               <BagIcon />
               <span>{cartCount}</span>
-            </button>
+            </Link>
 
             <button
               type="button"
-              className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm font-medium text-[#4b3a70] shadow-sm transition hover:bg-white"
+              className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm font-medium text-[#4b3a70] shadow-sm transition"
             >
               <UserIcon />
             </button>
@@ -220,7 +199,7 @@ export default function Header() {
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-white/80 text-[#4b3a70] shadow-sm transition hover:bg-white md:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-white/80 text-[#4b3a70] shadow-sm transition md:hidden"
             aria-label="Открыть меню"
           >
             <MenuIcon />
@@ -257,34 +236,62 @@ export default function Header() {
             </div>
 
             <div className="mb-5 rounded-3xl bg-[linear-gradient(135deg,rgba(143,92,255,0.12),rgba(255,255,255,0.75))] p-4">
-              <div className="mb-1 text-sm font-semibold text-[#2a1f44]">
+              <Link
+                href="/"
+                className="mb-1 block text-sm font-semibold text-[#2a1f44]"
+              >
                 Lumo
-              </div>
+              </Link>
               <p className="text-sm leading-6 text-[#6b5a8f]">
                 Игры, которые идеально ложатся в твой баланс
               </p>
             </div>
 
             <div className="space-y-3">
-              <MobileMenuItem
-                icon={<HeartIcon />}
-                label="Избранное"
-                value={favorites.length}
-              />
-              <MobileMenuItem
-                icon={<BagIcon />}
-                label="Твой выбор"
-                value={cartCount}
-              />
-              <MobileMenuItem icon={<UserIcon />} label="Профиль" />
-            </div>
+              <Link
+                href="/favorites"
+                className="flex w-full items-center justify-between rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-left text-[#4b3a70] shadow-sm"
+              >
+                <span className="flex items-center gap-3">
+                  <span
+                    className={
+                      hasFavorites ? "text-[#7c4dff]" : "text-[#6c5c90]"
+                    }
+                  >
+                    <HeartIcon />
+                  </span>
+                  <span className="text-sm font-medium">Избранное</span>
+                </span>
+                <span className="rounded-full bg-[#f3edff] px-2.5 py-1 text-xs font-semibold text-[#7c4dff]">
+                  {favorites.length}
+                </span>
+              </Link>
 
-            <div className="mt-auto pt-6">
+              <Link
+                href="/cart"
+                className="flex w-full items-center justify-between rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-left text-[#4b3a70] shadow-sm"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-[#6c5c90]">
+                    <BagIcon />
+                  </span>
+                  <span className="text-sm font-medium">Корзина</span>
+                </span>
+                <span className="rounded-full bg-[#f3edff] px-2.5 py-1 text-xs font-semibold text-[#7c4dff]">
+                  {cartCount}
+                </span>
+              </Link>
+
               <button
                 type="button"
-                className="w-full rounded-2xl bg-[linear-gradient(135deg,#8f5cff,#c084fc)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_22px_rgba(143,92,255,0.22)]"
+                className="flex w-full items-center justify-between rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-left text-[#4b3a70] shadow-sm"
               >
-                Продолжить
+                <span className="flex items-center gap-3">
+                  <span className="text-[#6c5c90]">
+                    <UserIcon />
+                  </span>
+                  <span className="text-sm font-medium">Профиль</span>
+                </span>
               </button>
             </div>
           </aside>

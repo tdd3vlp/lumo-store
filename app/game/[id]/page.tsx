@@ -80,7 +80,9 @@ export default function GamePage({ params }: PageProps) {
 
   const favorites = useStore((state) => state.favorites);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
+  const cart = useStore((state) => state.cart);
   const addToCart = useStore((state) => state.addToCart);
+  const decreaseCartItem = useStore((state) => state.decreaseCartItem);
 
   if (!game) {
     notFound();
@@ -98,6 +100,20 @@ export default function GamePage({ params }: PageProps) {
   );
 
   const isFavorite = favorites.includes(game.id);
+
+  const selectedEditionIndex = useMemo(
+    () =>
+      game.editions.findIndex((edition) => edition.id === selectedEditionId),
+    [game.editions, selectedEditionId],
+  );
+
+  const cartItemId = useMemo(
+    () => game.id * 100 + selectedEditionIndex + 1,
+    [game.id, selectedEditionIndex],
+  );
+
+  const cartItem = cart.find((item) => item.id === cartItemId);
+  const quantity = cartItem?.quantity ?? 0;
 
   return (
     <>
@@ -125,59 +141,97 @@ export default function GamePage({ params }: PageProps) {
           />
         </section>
 
-        <section className="mt-6 rounded-[28px] border border-white/60 bg-white/80 p-5 shadow-[0_14px_30px_rgba(120,92,170,0.12)] md:p-6">
-          <div className="mb-4">
-            <h1 className="text-2xl font-black text-[#2a1f44] md:text-4xl">
-              {game.title}
-            </h1>
+        <section className="mt-6 rounded-[28px] border border-white/60 bg-white/80 p-5 shadow-[0_14px_30px_rgba(120,92,170,0.12)] md:p-6 xl:p-7">
+          <div className="mb-6 xl:flex xl:items-start xl:justify-between xl:gap-8">
+            <div className="xl:max-w-[60%]">
+              <div className="mb-4">
+                <h1 className="text-2xl font-black text-[#2a1f44] md:text-4xl">
+                  {game.title}
+                </h1>
 
-            <div className="mt-3 flex items-end gap-3">
-              <span className="text-2xl font-bold text-[#7c4dff]">
-                {formatINR(selectedEdition.price)}
-              </span>
-              <span className="text-base text-[#9b8bb8] line-through">
-                {formatINR(selectedEdition.originalPrice)}
-              </span>
-            </div>
-          </div>
-
-          <div className="mb-6 flex gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                addToCart({
-                  id: Number(`${game.id}${selectedEdition.id}`),
-                  title: `${game.title} — ${selectedEdition.name}`,
-                  price: selectedEdition.price,
-                  image: game.image,
-                })
-              }
-              className="flex flex-1 items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#8f5cff,#c084fc)] px-5 py-4 text-base font-semibold text-white shadow-[0_12px_22px_rgba(143,92,255,0.22)] transition hover:translate-y-[-1px]"
-            >
-              <BagIcon />
-              <span>Добавить в корзину</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => toggleFavorite(game.id)}
-              className={`group flex h-[56px] w-[56px] items-center justify-center rounded-2xl border border-white/60 shadow-sm transition-all duration-200 ${
-                isFavorite
-                  ? "bg-[#f3edff] text-[#7c4dff]"
-                  : "bg-white/80 text-[#6c5c90] hover:bg-white hover:scale-[1.05]"
-              }`}
-              aria-label={
-                isFavorite ? "Remove from favorites" : "Add to favorites"
-              }
-            >
-              <div
-                className={`transition-transform duration-200 ${
-                  isFavorite ? "scale-110" : "group-hover:scale-110"
-                }`}
-              >
-                <HeartIcon filled={isFavorite} />
+                <div className="mt-3 flex items-end gap-3">
+                  <span className="text-2xl font-bold text-[#7c4dff]">
+                    {formatINR(selectedEdition.price)}
+                  </span>
+                  <span className="text-base text-[#9b8bb8] line-through">
+                    {formatINR(selectedEdition.originalPrice)}
+                  </span>
+                </div>
               </div>
-            </button>
+            </div>
+
+            <div className="flex gap-3 xl:w-[380px] xl:shrink-0">
+              {quantity === 0 ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    addToCart({
+                      id: cartItemId,
+                      title: `${game.title} — ${selectedEdition.name}`,
+                      price: selectedEdition.price,
+                      image: game.image,
+                    })
+                  }
+                  className="flex h-[52px] flex-1 items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#8f5cff,#c084fc)] px-5 text-sm font-semibold text-white shadow-[0_12px_22px_rgba(143,92,255,0.22)] md:text-base transition-all duration-200 hover:scale-[1.01]"
+                >
+                  <BagIcon />
+                  <span>Добавить в корзину</span>
+                </button>
+              ) : (
+                <div className="flex flex-1 items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => decreaseCartItem(cartItemId)}
+                    className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl border border-white/60 bg-white/80 text-xl font-semibold text-[#6c5c90] shadow-sm transition hover:bg-white"
+                    aria-label="Уменьшить количество"
+                  >
+                    −
+                  </button>
+
+                  <div className="flex h-[52px] flex-1 items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#8f5cff,#c084fc)] px-5 text-sm font-semibold text-white shadow-[0_12px_22px_rgba(143,92,255,0.22)] md:text-base">
+                    <BagIcon />
+                    <span>{quantity}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      addToCart({
+                        id: cartItemId,
+                        title: `${game.title} — ${selectedEdition.name}`,
+                        price: selectedEdition.price,
+                        image: game.image,
+                      })
+                    }
+                    className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl border border-white/60 bg-white/80 text-xl font-semibold text-[#6c5c90] shadow-sm transition"
+                    aria-label="Увеличить количество"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => toggleFavorite(game.id)}
+                className={`group flex h-[52px] w-[52px] items-center justify-center rounded-2xl border border-white/60 shadow-sm transition-all duration-200 ${
+                  isFavorite
+                    ? "text-[#7c4dff] hover:scale-[1.05]"
+                    : "bg-white/80 text-[#6c5c90] hover:bg-white hover:scale-[1.05]"
+                }`}
+                aria-label={
+                  isFavorite ? "Remove from favorites" : "Add to favorites"
+                }
+              >
+                <div
+                  className={`transition-transform duration-200 ${
+                    isFavorite ? "scale-110" : "group-hover:scale-110"
+                  }`}
+                >
+                  <HeartIcon filled={isFavorite} />
+                </div>
+              </button>
+            </div>
           </div>
 
           <div className="mb-6">
