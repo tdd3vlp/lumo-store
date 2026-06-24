@@ -7,14 +7,18 @@ export type GameEdition = {
 
 export type Game = {
   id: number;
+  region?: "IN" | "TR";
   title: string;
   image: string;
   price: number;
   originalPrice: number;
   description: string;
   platform: string;
-  hasRussian: boolean;
+  russianVoice: boolean;
+  russianSubtitles: boolean;
+  rating: number | null;
   releaseDate: string;
+  psStoreUrl?: string;
   editions: GameEdition[];
   screenshots: string[];
 };
@@ -30,7 +34,9 @@ export const games: Game[] = [
     description:
       "Исследуй Найт-Сити — огромный мегаполис будущего, где власть, импланты и улицы определяют правила игры. История, экшен и свобода выбора объединяются в одном мире.",
     platform: "PS5",
-    hasRussian: true,
+    russianVoice: true,
+    russianSubtitles: true,
+    rating: null,
     releaseDate: "26 September 2023",
     editions: [
       {
@@ -47,9 +53,9 @@ export const games: Game[] = [
       },
     ],
     screenshots: [
-      "https://cdn.akamai.steamstatic.com/steam/apps/1091500/ss_aeff8c6f7a86c96a8848ef5f697ddb586d555c34.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1091500/ss_0fbe07c511dc82fd0ef723c8d3ed6a1d2b19104f.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1091500/ss_d25f6a8b47f4f8ae09d0e87b84d888fffef67134.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_2f649b68d579bf87011487d29bc4ccbfdd97d34f.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_0e64170751e1ae20ff8fdb7001a8892fd48260e7.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_af2804aa4bf35d4251043744412ce3b359a125ef.600x338.jpg",
     ],
   },
   {
@@ -62,7 +68,9 @@ export const games: Game[] = [
     description:
       "Огромный фэнтезийный мир, сложные битвы и свобода исследования. Открой тайны Междуземья и выбери свой путь.",
     platform: "PS4 / PS5",
-    hasRussian: true,
+    russianVoice: true,
+    russianSubtitles: true,
+    rating: null,
     releaseDate: "25 February 2022",
     editions: [
       {
@@ -79,9 +87,9 @@ export const games: Game[] = [
       },
     ],
     screenshots: [
-      "https://cdn.akamai.steamstatic.com/steam/apps/1245620/ss_9475087ca7f84d5b4964f5aabdbed9a73b1af6df.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1245620/ss_b67b9a2d8d8f3d2f2775ac4f9f374ad7afb5f747.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1245620/ss_3485f6231c0e7e3d5e6efc66f534813df75f1a4f.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/ss_943bf6fe62352757d9070c1d33e50b92fe8539f1.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/ss_dcdac9e4b26ac0ee5248bfd2967d764fd00cdb42.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/ss_3c41384a24d86dddd58a8f61db77f9dc0bfda8b5.600x338.jpg",
     ],
   },
   {
@@ -94,7 +102,9 @@ export const games: Game[] = [
     description:
       "Открой Хогвартс XIX века, изучай магию, исследуй замок и стань частью своей собственной истории в волшебном мире.",
     platform: "PS5",
-    hasRussian: true,
+    russianVoice: true,
+    russianSubtitles: true,
+    rating: null,
     releaseDate: "10 February 2023",
     editions: [
       {
@@ -111,9 +121,9 @@ export const games: Game[] = [
       },
     ],
     screenshots: [
-      "https://cdn.akamai.steamstatic.com/steam/apps/990080/ss_1be7b27a8f4fdf16fe8f2d304681140f64e56830.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/990080/ss_7d343d6f2f401327582f5ea18284d888fffef671.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/990080/ss_c8e64e3d8365dff78eaef65a269b4015f9e3cd50.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990080/ss_725bf58485beb4aa37a3a69c1e2baa69bf3e4653.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990080/ss_df93b5e8a183f7232d68be94ae78920a90de1443.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990080/ss_94058497bf0f8fabdde17ee8d59bece609a60663.600x338.jpg",
     ],
   },
   {
@@ -126,7 +136,9 @@ export const games: Game[] = [
     description:
       "Классическая ролевая игра с огромным открытым миром, насыщенным сюжетом и незабываемыми приключениями Геральта.",
     platform: "PS4 / PS5",
-    hasRussian: true,
+    russianVoice: true,
+    russianSubtitles: true,
+    rating: null,
     releaseDate: "19 May 2015",
     editions: [
       {
@@ -143,9 +155,9 @@ export const games: Game[] = [
       },
     ],
     screenshots: [
-      "https://cdn.akamai.steamstatic.com/steam/apps/292030/ss_5f66f5e7f4ab79e927651c01fb9b31c7648206f2.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/292030/ss_9ecdf41ecd6c3a58cbe1e3e0bbd10b191ed257a7.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/292030/ss_d6b6ebf21876d3a7db0b3a7c33dcb162d723c50b.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/ss_5710298af2318afd9aa72449ef29ac4a2ef64d8e.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/ss_0901e64e9d4b8ebaea8348c194e7a3644d2d832d.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/ss_112b1e176c1bd271d8a565eacb6feaf90f240bb2.600x338.jpg",
     ],
   },
   {
@@ -158,7 +170,9 @@ export const games: Game[] = [
     description:
       "Эпичное приключение на Диком Западе с сильным сюжетом, атмосферой и огромным живым миром.",
     platform: "PS4",
-    hasRussian: false,
+    russianVoice: false,
+    russianSubtitles: false,
+    rating: null,
     releaseDate: "26 October 2018",
     editions: [
       {
@@ -175,9 +189,9 @@ export const games: Game[] = [
       },
     ],
     screenshots: [
-      "https://cdn.akamai.steamstatic.com/steam/apps/1174180/ss_b7f6f8e99b3f7f59a7096cbab768c13213e63ed3.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1174180/ss_d1f4c2a3ccf7ecd6c6292a3a3aad0cb1b61bf3f1.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1174180/ss_6f6c4df9e5b0d66bd1d4fdfc9e4f38632766952f.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/ss_66b553f4c209476d3e4ce25fa4714002cc914c4f.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/ss_bac60bacbf5da8945103648c08d27d5e202444ca.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/ss_668dafe477743f8b50b818d5bbfcec669e9ba93e.600x338.jpg",
     ],
   },
   {
@@ -190,7 +204,9 @@ export const games: Game[] = [
     description:
       "Переосмысление культового хоррора с современной графикой, динамичным экшеном и напряжённой атмосферой.",
     platform: "PS4 / PS5",
-    hasRussian: true,
+    russianVoice: true,
+    russianSubtitles: true,
+    rating: null,
     releaseDate: "24 March 2023",
     editions: [
       {
@@ -207,9 +223,9 @@ export const games: Game[] = [
       },
     ],
     screenshots: [
-      "https://cdn.akamai.steamstatic.com/steam/apps/2050650/ss_0d7bcae4a3db7841e35cf1aaba3a0990353d363d.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/2050650/ss_6d8f2bbf4e3ff1f146ddcaad419acf680cfb9fc5.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/2050650/ss_e7acbff655648c0a5ddc8f7b65e9d6c7a94d6480.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2050650/ss_59d1b19964cc532213df92c8287b75a0bffeb33c.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2050650/ss_ab807f8ad9e968a620777caf483cb6020367b9ee.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2050650/ss_0442f7fb4327d79802c2db8ea8d23d228a28d896.600x338.jpg",
     ],
   },
   {
@@ -222,7 +238,9 @@ export const games: Game[] = [
     description:
       "Масштабная ролевая игра с невероятной свободой выбора, кооперативом и богатым фэнтезийным миром.",
     platform: "PS5",
-    hasRussian: true,
+    russianVoice: true,
+    russianSubtitles: true,
+    rating: null,
     releaseDate: "6 September 2023",
     editions: [
       {
@@ -233,9 +251,9 @@ export const games: Game[] = [
       },
     ],
     screenshots: [
-      "https://cdn.akamai.steamstatic.com/steam/apps/1086940/ss_1f8f6f4f0eae5e7c6b7c9f1edbb0f44d8cb8d704.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1086940/ss_f7e4c4f8d27ac0bb4f9d87ed0d4830c87f3e9465.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1086940/ss_967c4e0f42f7f5d83c09c20d5ecb0ee944147f1d.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_c73bc54415178c07fef85f54ee26621728c77504.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_73d93bea842b93914d966622104dcb8c0f42972b.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_cf936d31061b58e98e0c646aee00e6030c410cda.600x338.jpg",
     ],
   },
   {
@@ -248,7 +266,9 @@ export const games: Game[] = [
     description:
       "Необычное приключение глазами кота в атмосферном кибергороде с головоломками и исследованием.",
     platform: "PS4 / PS5",
-    hasRussian: true,
+    russianVoice: true,
+    russianSubtitles: true,
+    rating: null,
     releaseDate: "19 July 2022",
     editions: [
       {
@@ -259,9 +279,9 @@ export const games: Game[] = [
       },
     ],
     screenshots: [
-      "https://cdn.akamai.steamstatic.com/steam/apps/1332010/ss_5ea7da94d4f64e5c4d6fd0eabeb57e2de95397b6.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1332010/ss_ebad4fcb0c3a61f8ef874574f20e6f04e6ac849e.jpg",
-      "https://cdn.akamai.steamstatic.com/steam/apps/1332010/ss_3194cdb188b4c04b14f0b0ec98c024aaa0dae68d.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1332010/ss_88e209a90c2039fa76bca6fa08c641365be38d50.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1332010/ss_e8f0cbd5efdba352e89c4cfcee3fe991a1e1be8a.600x338.jpg",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1332010/ss_2221af260c64362fdc835a9dca65f6f1d1192b25.600x338.jpg",
     ],
   },
 ];

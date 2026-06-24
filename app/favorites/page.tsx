@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { games } from "@/data/mockGames";
@@ -52,9 +53,11 @@ export default function FavoritesPage() {
                   className="flex gap-4 rounded-3xl border border-white/60 bg-white/80 p-4 shadow"
                 >
                   {/* Cover */}
-                  <img
+                  <Image
                     src={game.image}
                     alt={game.title}
+                    width={100}
+                    height={140}
                     className="h-[140px] w-[100px] rounded-2xl object-cover"
                   />
 

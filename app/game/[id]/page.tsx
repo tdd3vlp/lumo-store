@@ -1,39 +1,25 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { use, useMemo, useState } from "react";
-import { notFound } from "next/navigation";
-import { Swiper, SwiperSlide } from "swiper/react";
+import { notFound, useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import Header from "@/components/Header";
-import { games } from "@/data/mockGames";
+import { psnDeals } from "@/data/psnDeals";
+import { newGames } from "@/data/newGames";
+import { preorderGames } from "@/data/preorderGames";
+import { inferEditionName } from "@/lib/catalog/editions";
+
+const games = [...psnDeals, ...newGames, ...preorderGames];
 import { useStore } from "@/store/useStore";
 
-type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
-
 function HeartIcon({ filled }: { filled: boolean }) {
-  if (filled) {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-5 w-5"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path d="M12 20.5s-7-4.35-7-10.07A4.43 4.43 0 0 1 9.46 6a4.91 4.91 0 0 1 2.54 1.44A4.91 4.91 0 0 1 14.54 6 4.43 4.43 0 0 1 19 10.43C19 16.15 12 20.5 12 20.5Z" />
-      </svg>
-    );
-  }
-
   return (
     <svg
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.9"
       className="h-5 w-5"
       aria-hidden="true"
     >
@@ -46,23 +32,39 @@ function HeartIcon({ filled }: { filled: boolean }) {
   );
 }
 
-function BagIcon() {
+function CartIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.9"
       className="h-5 w-5"
       aria-hidden="true"
     >
       <path
-        d="M6.5 8.5h11l-1 10.5a2 2 0 0 1-2 1.5h-5a2 2 0 0 1-2-1.5L6.5 8.5Z"
+        d="M3 4h2l2.2 10.1a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <circle cx="10" cy="20" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="20" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
       <path
-        d="M9 9V7.5a3 3 0 0 1 6 0V9"
+        d={direction === "left" ? "m15 6-6 6 6 6" : "m9 6 6 6-6 6"}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -74,9 +76,20 @@ function formatINR(value: number) {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
-export default function GamePage({ params }: PageProps) {
-  const { id } = use(params);
-  const game = games.find((item) => item.id === Number(id));
+function formatReleaseDate(value: string) {
+  const [day, month, year] = value.split("/").map(Number);
+  if (!day || !month || !year) return value;
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
+}
+
+export default function GamePage() {
+  const params = useParams();
+  const game = games.find((item) => item.id === Number(params.id));
 
   const favorites = useStore((state) => state.favorites);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
@@ -84,252 +97,374 @@ export default function GamePage({ params }: PageProps) {
   const addToCart = useStore((state) => state.addToCart);
   const decreaseCartItem = useStore((state) => state.decreaseCartItem);
 
+  const [selectedEditionId, setSelectedEditionId] = useState(
+    game?.editions[0]?.id ?? "",
+  );
+  const [screenshots, setScreenshots] = useState<string[]>(
+    game?.screenshots ?? [],
+  );
+  const [screenshotsLoading, setScreenshotsLoading] = useState(
+    (game?.screenshots.length ?? 0) === 0,
+  );
+  const screenshotsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!game || game.screenshots.length > 0) return;
+
+    let active = true;
+
+    fetch(`/api/game-media?id=${game.id}`)
+      .then((response) => response.json())
+      .then((result: { screenshots?: string[] }) => {
+        if (active && Array.isArray(result.screenshots)) {
+          setScreenshots(result.screenshots);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setScreenshotsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [game]);
+
   if (!game) {
     notFound();
   }
 
-  const [selectedEditionId, setSelectedEditionId] = useState(
-    game.editions[0].id,
+  const selectedEdition =
+    game.editions.find((edition) => edition.id === selectedEditionId) ??
+    game.editions[0];
+  const displayedEditions = game.editions.map((edition) => ({
+    ...edition,
+    name:
+      game.editions.length === 1
+        ? inferEditionName(game.title)
+        : edition.name,
+  }));
+  const displayedSelectedEdition =
+    displayedEditions.find((edition) => edition.id === selectedEdition.id) ??
+    displayedEditions[0];
+  const selectedEditionIndex = game.editions.findIndex(
+    (edition) => edition.id === selectedEdition.id,
   );
-
-  const selectedEdition = useMemo(
-    () =>
-      game.editions.find((edition) => edition.id === selectedEditionId) ??
-      game.editions[0],
-    [game.editions, selectedEditionId],
+  const cartItemId = game.id * 100 + selectedEditionIndex + 1;
+  const gameRegion = game.region ?? "IN";
+  const cartItem = cart.find(
+    (item) =>
+      item.id === cartItemId && (item.region ?? "IN") === gameRegion,
   );
-
-  const isFavorite = favorites.includes(game.id);
-
-  const selectedEditionIndex = useMemo(
-    () =>
-      game.editions.findIndex((edition) => edition.id === selectedEditionId),
-    [game.editions, selectedEditionId],
-  );
-
-  const cartItemId = useMemo(
-    () => game.id * 100 + selectedEditionIndex + 1,
-    [game.id, selectedEditionIndex],
-  );
-
-  const cartItem = cart.find((item) => item.id === cartItemId);
   const quantity = cartItem?.quantity ?? 0;
+  const isFavorite = favorites.includes(game.id);
+  const discount = Math.round(
+    (1 - selectedEdition.price / selectedEdition.originalPrice) * 100,
+  );
+  const languageLabel =
+    game.russianVoice && game.russianSubtitles
+      ? "Озвучка и субтитры"
+      : game.russianVoice
+        ? "Озвучка"
+        : game.russianSubtitles
+          ? "Субтитры"
+          : "Отсутствует";
+  const platformLabel =
+    game.platform === "PS4" ? "PS4, можно играть на PS5" : game.platform;
+
+  const scrollScreenshots = (direction: "left" | "right") => {
+    const gallery = screenshotsRef.current;
+    if (!gallery) return;
+
+    gallery.scrollBy({
+      left:
+        direction === "left"
+          ? -Math.round(gallery.clientWidth * 0.72)
+          : Math.round(gallery.clientWidth * 0.72),
+      behavior: "smooth",
+    });
+  };
+
+  const addSelectedEdition = () =>
+    addToCart({
+      id: cartItemId,
+      region: gameRegion,
+      title: `${game.title} — ${displayedSelectedEdition.name}`,
+      price: selectedEdition.price,
+      image: game.image,
+    });
 
   return (
     <>
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 pb-32 pt-5 md:px-6 lg:px-8">
         <nav
-          aria-label="Breadcrumb"
-          className="mb-4 flex flex-wrap items-center gap-2 text-sm text-[#7d6d99]"
+          aria-label="Хлебные крошки"
+          className="mb-5 flex min-w-0 items-center gap-2 text-sm text-[var(--text-muted)]"
         >
-          <Link href="/" className="transition hover:text-[#7c4dff]">
-            Главная страница
+          <Link
+            href="/"
+            className="shrink-0 font-semibold transition hover:text-[var(--ink)]"
+          >
+            Главная
           </Link>
-
-          <span className="text-[#b6a8d1]">/</span>
-
-          <span className="font-medium text-[#4b3a70]">{game.title}</span>
+          <span aria-hidden="true">/</span>
+          <span className="truncate">{game.title}</span>
         </nav>
 
-        <section className="overflow-hidden rounded-[32px] border border-white/60 bg-white/80 shadow-[0_18px_40px_rgba(143,92,255,0.14)]">
-          <img
-            src={game.image}
-            alt={game.title}
-            className="h-[260px] w-full object-cover md:h-[420px]"
+        <section className="relative overflow-hidden rounded-[24px] bg-[var(--ink)] text-white">
+          <div
+            className="pointer-events-none absolute -right-24 -top-36 h-96 w-96 rounded-full bg-[var(--signal)]/[0.07] blur-3xl"
+            aria-hidden="true"
           />
-        </section>
 
-        <section className="mt-6 rounded-[28px] border border-white/60 bg-white/80 p-5 shadow-[0_14px_30px_rgba(120,92,170,0.12)] md:p-6 xl:p-7">
-          <div className="mb-6 xl:flex xl:items-start xl:justify-between xl:gap-8">
-            <div className="xl:max-w-[60%]">
-              <div className="mb-4">
-                <h1 className="text-2xl font-black text-[#2a1f44] md:text-4xl">
-                  {game.title}
-                </h1>
-
-                <div className="mt-3 flex items-end gap-3">
-                  <span className="text-2xl font-bold text-[#7c4dff]">
-                    {formatINR(selectedEdition.price)}
-                  </span>
-                  <span className="text-base text-[#9b8bb8] line-through">
-                    {formatINR(selectedEdition.originalPrice)}
-                  </span>
-                </div>
-              </div>
+          <div className="relative grid gap-7 p-4 sm:p-6 md:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.28fr)] md:p-8 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-10 lg:p-10">
+            <div className="relative mx-auto aspect-[7/8] w-full max-w-[380px] overflow-hidden rounded-[18px] border-2 border-[var(--signal)] bg-[var(--ink-soft)]">
+              <Image
+                src={game.image}
+                alt={game.title}
+                fill
+                priority
+                sizes="(max-width: 767px) 90vw, 340px"
+                className="object-cover"
+              />
             </div>
 
-            <div className="flex gap-3 xl:w-[380px] xl:shrink-0">
-              {quantity === 0 ? (
+            <div className="flex min-w-0 flex-col">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {game.rating !== null && (
+                  <span className="inline-flex h-7 items-center rounded-[7px] border border-white/18 bg-white/[0.06] px-2.5 text-xs font-bold text-[var(--signal)]">
+                    ★ {game.rating.toFixed(1)}
+                  </span>
+                )}
+              </div>
+
+              <h1 className="max-w-[850px] font-[family-name:var(--font-unbounded)] text-[clamp(1.75rem,4vw,3.65rem)] font-bold leading-[1.02] tracking-[-0.045em] text-[var(--paper-strong)]">
+                {game.title}
+              </h1>
+
+              <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-2">
+                <span className="font-[family-name:var(--font-unbounded)] text-3xl font-bold leading-none text-[var(--signal)] md:text-4xl">
+                  {formatINR(selectedEdition.price)}
+                </span>
+                {selectedEdition.originalPrice > selectedEdition.price && (
+                  <>
+                    <span className="text-lg font-medium leading-none text-white/42 line-through md:text-xl">
+                      {formatINR(selectedEdition.originalPrice)}
+                    </span>
+                    <span className="rounded-[7px] bg-[var(--coral)] px-2.5 py-1 text-sm font-extrabold leading-none text-white">
+                      −{discount}%
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3 md:mt-auto md:pt-6">
+                {quantity === 0 ? (
+                  <button
+                    type="button"
+                    onClick={addSelectedEdition}
+                    className="inline-flex min-h-14 flex-1 items-center justify-center gap-2.5 rounded-[14px] border border-[var(--signal)] bg-[var(--signal)] px-5 text-base font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] sm:max-w-[310px]"
+                  >
+                    <CartIcon />
+                    Добавить в корзину
+                  </button>
+                ) : (
+                  <div className="flex min-h-14 flex-1 items-center gap-2 sm:max-w-[310px]">
+                    <button
+                      type="button"
+                      onClick={() => decreaseCartItem(cartItemId, gameRegion)}
+                      className="h-14 w-14 rounded-[14px] border border-white/20 bg-white/[0.06] text-2xl font-medium transition hover:bg-white/[0.1]"
+                      aria-label="Уменьшить количество"
+                    >
+                      −
+                    </button>
+                    <div className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--signal)] font-extrabold text-[var(--ink)]">
+                      <CartIcon />
+                      {quantity}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addSelectedEdition}
+                      className="h-14 w-14 rounded-[14px] border border-white/20 bg-white/[0.06] text-2xl font-medium transition hover:bg-white/[0.1]"
+                      aria-label="Увеличить количество"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  onClick={() =>
-                    addToCart({
-                      id: cartItemId,
-                      title: `${game.title} — ${selectedEdition.name}`,
-                      price: selectedEdition.price,
-                      image: game.image,
-                    })
-                  }
-                  className="flex h-[52px] flex-1 items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#8f5cff,#c084fc)] px-5 text-sm font-semibold text-white shadow-[0_12px_22px_rgba(143,92,255,0.22)] md:text-base transition-all duration-200 hover:scale-[1.01]"
-                >
-                  <BagIcon />
-                  <span>Добавить в корзину</span>
-                </button>
-              ) : (
-                <div className="flex flex-1 items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => decreaseCartItem(cartItemId)}
-                    className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl border border-white/60 bg-white/80 text-xl font-semibold text-[#6c5c90] shadow-sm transition hover:bg-white"
-                    aria-label="Уменьшить количество"
-                  >
-                    −
-                  </button>
-
-                  <div className="flex h-[52px] flex-1 items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#8f5cff,#c084fc)] px-5 text-sm font-semibold text-white shadow-[0_12px_22px_rgba(143,92,255,0.22)] md:text-base">
-                    <BagIcon />
-                    <span>{quantity}</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addToCart({
-                        id: cartItemId,
-                        title: `${game.title} — ${selectedEdition.name}`,
-                        price: selectedEdition.price,
-                        image: game.image,
-                      })
-                    }
-                    className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl border border-white/60 bg-white/80 text-xl font-semibold text-[#6c5c90] shadow-sm transition"
-                    aria-label="Увеличить количество"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => toggleFavorite(game.id)}
-                className={`group flex h-[52px] w-[52px] items-center justify-center rounded-2xl border border-white/60 shadow-sm transition-all duration-200 ${
-                  isFavorite
-                    ? "text-[#7c4dff] hover:scale-[1.05]"
-                    : "bg-white/80 text-[#6c5c90] hover:bg-white hover:scale-[1.05]"
-                }`}
-                aria-label={
-                  isFavorite ? "Remove from favorites" : "Add to favorites"
-                }
-              >
-                <div
-                  className={`transition-transform duration-200 ${
-                    isFavorite ? "scale-110" : "group-hover:scale-110"
+                  onClick={() => toggleFavorite(game.id)}
+                  className={`flex h-14 w-14 items-center justify-center rounded-[14px] border transition ${
+                    isFavorite
+                      ? "border-[var(--coral)] bg-[var(--coral)] text-white"
+                      : "border-white/20 bg-white/[0.06] text-white hover:bg-white/[0.1]"
                   }`}
+                  aria-label={
+                    isFavorite
+                      ? "Убрать из избранного"
+                      : "Добавить в избранное"
+                  }
+                  aria-pressed={isFavorite}
                 >
                   <HeartIcon filled={isFavorite} />
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <div className="mb-3 text-sm font-medium text-[#8f5cff]">
-              Издание
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              {game.editions.map((edition) => {
-                const isActive = edition.id === selectedEditionId;
-
-                return (
-                  <button
-                    key={edition.id}
-                    type="button"
-                    onClick={() => setSelectedEditionId(edition.id)}
-                    className={`rounded-2xl border px-4 py-3 text-left transition ${
-                      isActive
-                        ? "border-[#bca8ff] bg-[#f3edff] text-[#2a1f44]"
-                        : "border-white/60 bg-white/70 text-[#6b5a8f] hover:bg-white"
-                    }`}
-                  >
-                    <div className="text-sm font-semibold">{edition.name}</div>
-                    <div className="mt-1 text-sm">
-                      {formatINR(edition.price)}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <div>
-              <div className="mb-2 text-sm font-medium text-[#8f5cff]">
-                Описание
-              </div>
-              <p className="leading-7 text-[#5d4f7f]">{game.description}</p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-2xl bg-[#f8f4ff] p-4">
-                <div className="mb-1 text-sm font-medium text-[#8f5cff]">
-                  Платформа
-                </div>
-                <div className="text-sm font-semibold text-[#2a1f44]">
-                  {game.platform}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-[#f8f4ff] p-4">
-                <div className="mb-1 text-sm font-medium text-[#8f5cff]">
-                  Русский язык
-                </div>
-                <div className="text-sm font-semibold text-[#2a1f44]">
-                  {game.hasRussian ? "Доступен" : "Не поддерживается"}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-[#f8f4ff] p-4">
-                <div className="mb-1 text-sm font-medium text-[#8f5cff]">
-                  Дата релиза
-                </div>
-                <div className="text-sm font-semibold text-[#2a1f44]">
-                  {game.releaseDate}
-                </div>
+                </button>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="mt-6">
-          <div className="mb-4 text-lg font-bold text-[#2a1f44]">Скриншоты</div>
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+          <section className="rounded-[20px] border border-[var(--line)] bg-[var(--card-surface)] p-5 md:p-7">
+            <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+              Об игре
+            </p>
+            <h2 className="text-2xl font-bold tracking-[-0.035em] text-[var(--ink)]">
+              Описание
+            </h2>
+            <p className="mt-4 whitespace-pre-line text-[15px] leading-7 text-[var(--text-muted)] md:text-base">
+              {game.description.replaceAll(" _ ", "\n").replaceAll("...", "…")}
+            </p>
+            {game.psStoreUrl && (
+              <a
+                href={game.psStoreUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-6 inline-flex w-fit items-center text-sm font-bold text-[var(--ink)] underline decoration-[var(--line-strong)] decoration-1 underline-offset-4 transition hover:decoration-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--signal-strong)]"
+              >
+                Посмотреть в PS Store
+              </a>
+            )}
+          </section>
 
-          <Swiper
-            spaceBetween={16}
-            slidesPerView={1.1}
-            breakpoints={{
-              768: {
-                slidesPerView: 2.2,
-              },
-              1280: {
-                slidesPerView: 3,
-              },
-            }}
-          >
-            {game.screenshots.map((screenshot, index) => (
-              <SwiperSlide key={index}>
-                <div className="overflow-hidden rounded-[24px] border border-white/60 bg-white/70 shadow-sm">
-                  <img
+          <div className="space-y-6">
+            <section className="rounded-[20px] border border-[var(--line)] bg-[var(--card-surface)] p-5">
+              <h2 className="text-lg font-bold tracking-[-0.025em] text-[var(--ink)]">
+                Издание
+              </h2>
+              <div className="mt-4 grid gap-2.5">
+                {displayedEditions.map((edition) => {
+                  const isActive = edition.id === selectedEdition.id;
+
+                  return (
+                    <button
+                      key={edition.id}
+                      type="button"
+                      onClick={() => setSelectedEditionId(edition.id)}
+                      className={`flex items-center justify-between gap-4 rounded-[14px] border px-4 py-3 text-left transition ${
+                        isActive
+                          ? "border-[var(--ink)] bg-[var(--ink)] text-white"
+                          : "border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] hover:border-[var(--line-strong)]"
+                      }`}
+                    >
+                      <span className="text-sm font-bold">{edition.name}</span>
+                      <span
+                        className={`shrink-0 font-extrabold ${
+                          isActive ? "text-[var(--signal)]" : ""
+                        }`}
+                      >
+                        {formatINR(edition.price)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="grid gap-px overflow-hidden rounded-[20px] border border-[var(--line)] bg-[var(--line)]">
+              {[
+                ["Платформа", platformLabel],
+                ["Русский язык", languageLabel],
+                ["Дата выхода", formatReleaseDate(game.releaseDate)],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-4 bg-[var(--card-surface)] px-5 py-4"
+                >
+                  <span className="text-sm text-[var(--text-muted)]">
+                    {label}
+                  </span>
+                  <span className="text-right text-sm font-bold text-[var(--ink)]">
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </section>
+          </div>
+        </div>
+
+        <section className="mt-9">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                Галерея
+              </p>
+              <h2 className="mt-1 text-2xl font-bold tracking-[-0.035em] text-[var(--ink)] md:text-3xl">
+                Скриншоты
+              </h2>
+            </div>
+            {screenshots.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="mr-1 hidden text-sm font-semibold text-[var(--text-muted)] sm:inline">
+                  {screenshots.length} изображений
+                </span>
+                <button
+                  type="button"
+                  onClick={() => scrollScreenshots("left")}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--card-surface)] text-[var(--ink)] transition hover:border-[var(--line-strong)] hover:bg-[var(--paper-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)]"
+                  aria-label="Предыдущие скриншоты"
+                >
+                  <ChevronIcon direction="left" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollScreenshots("right")}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--ink)] bg-[var(--ink)] text-[var(--signal)] transition hover:bg-[var(--ink-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)]"
+                  aria-label="Следующие скриншоты"
+                >
+                  <ChevronIcon direction="right" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {screenshotsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {[0, 1].map((item) => (
+                <div
+                  key={item}
+                  className="aspect-video animate-pulse rounded-[18px] bg-[var(--line)]"
+                />
+              ))}
+            </div>
+          ) : screenshots.length > 0 ? (
+            <div
+              ref={screenshotsRef}
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {screenshots.map((screenshot, index) => (
+                <div
+                  key={screenshot}
+                  className="relative aspect-video w-[88%] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[var(--line-strong)] bg-[var(--ink)] sm:w-[72%] lg:w-[56%]"
+                >
+                  <Image
                     src={screenshot}
-                    alt={`${game.title} screenshot ${index + 1}`}
-                    className="h-[220px] w-full object-cover"
+                    alt={`${game.title}, скриншот ${index + 1}`}
+                    fill
+                    sizes="(max-width: 640px) 88vw, (max-width: 1024px) 72vw, 700px"
+                    className="object-cover"
                   />
                 </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[18px] border border-dashed border-[var(--line-strong)] bg-[var(--card-surface)] px-5 py-10 text-center text-sm font-semibold text-[var(--text-muted)]">
+              Для этой игры PlayStation Store пока не вернул изображения галереи.
+            </div>
+          )}
         </section>
       </main>
     </>

@@ -1,30 +1,65 @@
 import Header from "@/components/Header";
-import HeroCarousel from "@/components/HeroCarousel";
+import BudgetHero from "@/components/BudgetHero";
+import BudgetGamesSection from "@/components/BudgetGamesSection";
 import GameRowSection from "@/components/GameRowSection";
-import { games } from "@/data/mockGames";
+import TrustStrip from "@/components/TrustStrip";
+import { psnDeals } from "@/data/psnDeals";
+import { newGames } from "@/data/newGames";
+import { preorderGames } from "@/data/preorderGames";
 
 export default function Home() {
-  const budgetGames = games;
-  const newReleases = [...games].slice(2, 8);
-  const customerChoice = [...games].slice(0, 6);
-  const bestDeals = [...games].slice(1, 7);
+  const heroCovers = psnDeals.slice(0, 4).map((g) => ({
+    id: g.id,
+    title: g.title,
+    image: g.image,
+  }));
+
+  // "Скидки недели" — порядок как в файле
+  const weekDeals = psnDeals.slice(0, 20);
+
+  // "Новинки" — порядок как в файле
+  const newReleases = newGames.slice(0, 20);
+
+  // "Предзаказы" — порядок как в файле
+  const preorders = preorderGames.slice(0, 20);
+
+  // "Выбор покупателей" — из Deals, по рейтингу
+  const customerChoice = psnDeals
+    .filter((g) => g.rating !== null)
+    .sort((a, b) => {
+      const ratingDiff = (b.rating ?? 0) - (a.rating ?? 0);
+      if (Math.abs(ratingDiff) > 0.09) return ratingDiff;
+      // При одинаковом рейтинге озвучка приоритетнее субтитров
+      return (b.russianVoice ? 1 : 0) - (a.russianVoice ? 1 : 0);
+    })
+    .slice(0, 20);
 
   return (
-    <main className="min-h-screen pb-14">
+    <main className="min-h-screen pb-28 md:pb-32">
       <Header />
+      <BudgetHero coverGames={heroCovers} />
 
-      <section className="mx-auto max-w-7xl px-4 pt-6 md:px-6 lg:px-8">
-        <HeroCarousel />
-      </section>
+      {/* 1. Игры под твой бюджет — client component, фильтрует по selectedBudget */}
+      <div className="mt-10">
+        <BudgetGamesSection />
+      </div>
+
+      <div className="mt-8">
+        <TrustStrip />
+      </div>
 
       <div className="mt-10 space-y-10 md:space-y-12">
-        <GameRowSection title="Игры под твой бюджет" games={budgetGames} />
+        {/* 2. Скидки недели */}
+        <GameRowSection title="Скидки недели" games={weekDeals} />
 
+        {/* 3. Новинки */}
         <GameRowSection title="Новинки" games={newReleases} />
 
-        <GameRowSection title="Выбор покупателей" games={customerChoice} />
+        {/* 4. Предзаказы */}
+        <GameRowSection title="Предзаказы" games={preorders} />
 
-        <GameRowSection title="Лучшие предложения" games={bestDeals} />
+        {/* 5. Выбор покупателей */}
+        <GameRowSection title="Выбор покупателей" games={customerChoice} />
       </div>
     </main>
   );

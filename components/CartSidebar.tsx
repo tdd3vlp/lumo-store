@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo } from "react";
 import { games } from "@/data/mockGames";
 import { useStore } from "@/store/useStore";
 
 const GIFT_CARD_AMOUNTS = [
-  1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000,
+  1000, 2000, 3000, 4000, 5000, 7000, 8000, 9000, 12000,
 ];
 
 function getSuggestedCard(total: number) {
@@ -39,7 +40,7 @@ export default function CartSidebar() {
 
   const total = useMemo(() => {
     return Math.round(
-      cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      cart.reduce((sum, item) => sum + (item.price ?? 0) * item.quantity, 0),
     );
   }, [cart]);
 
@@ -75,7 +76,7 @@ export default function CartSidebar() {
         {cart.length > 0 && (
           <button
             type="button"
-            onClick={clearCart}
+            onClick={() => clearCart()}
             className="rounded-xl border border-white/70 bg-white/80 px-3 py-2 text-sm font-medium text-[#6b5a8f] transition hover:bg-white"
           >
             Очистить
@@ -96,9 +97,11 @@ export default function CartSidebar() {
                 className="rounded-2xl bg-white/75 p-3 shadow-sm"
               >
                 <div className="mb-3 flex items-center gap-3">
-                  <img
+                  <Image
                     src={item.image}
                     alt={item.title}
+                    width={96}
+                    height={64}
                     className="h-16 w-24 rounded-xl object-cover"
                   />
 
@@ -107,7 +110,7 @@ export default function CartSidebar() {
                       {item.title}
                     </p>
                     <p className="mt-1 text-sm text-[#8f5cff]">
-                      {formatINR(item.price)}
+                      {item.price != null ? formatINR(item.price) : "Цена недоступна"}
                     </p>
                   </div>
 
@@ -219,9 +222,11 @@ export default function CartSidebar() {
                     key={game.id}
                     className="flex items-center gap-3 rounded-2xl bg-white/80 p-3"
                   >
-                    <img
+                    <Image
                       src={game.image}
                       alt={game.title}
+                      width={80}
+                      height={56}
                       className="h-14 w-20 rounded-xl object-cover"
                     />
 

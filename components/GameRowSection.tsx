@@ -1,114 +1,90 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useState } from "react";
 import GameCard from "@/components/GameCard";
-import type { Game } from "@/data/mockGames";
+import { gameLanguageSupport } from "@/data/gameLanguageSupport";
+
+type RowGame = {
+  id: number;
+  title: string;
+  price: string | number | null;
+  originalPrice?: number | null;
+  image: string;
+  platform?: string;
+  russianVoice?: boolean;
+  russianSubtitles?: boolean;
+};
 
 type Props = {
   title: string;
-  games: Game[];
+  games: RowGame[];
+  dark?: boolean;
+  id?: string;
 };
 
-function ArrowLeftIcon() {
+function ArrowIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
+      strokeWidth="2"
+      className={`h-4 w-4 transition-transform duration-300 ${
+        expanded ? "-rotate-90" : ""
+      }`}
+      aria-hidden="true"
     >
-      <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 12h13M13 7l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function ArrowRightIcon() {
+export default function GameRowSection({
+  title,
+  games,
+  dark = false,
+  id,
+}: Props) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const textColor = dark ? "text-white" : "text-[var(--text)]";
+  const btnBase = dark
+    ? "border-[var(--line-inverse)] bg-white/5 text-white hover:bg-white/10"
+    : "border-[var(--line)] bg-[var(--paper-strong)] text-[var(--text)] hover:bg-[var(--paper)]";
+
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
+    <section
+      id={id}
+      className={`mx-auto max-w-7xl px-4 md:px-6 lg:px-8 ${dark ? "" : ""}`}
     >
-      <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export default function GameRowSection({ title, games }: Props) {
-  const rowRef = useRef<HTMLDivElement | null>(null);
-
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [isAtEnd, setIsAtEnd] = useState(false);
-
-  const checkScroll = () => {
-    const el = rowRef.current;
-    if (!el) return;
-
-    setCanScrollLeft(el.scrollLeft > 0);
-    setIsAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 5);
-  };
-
-  useEffect(() => {
-    checkScroll();
-  }, []);
-
-  const scrollRow = (direction: "left" | "right") => {
-    if (!rowRef.current) return;
-
-    const el = rowRef.current;
-
-    // 👉 если дошли до конца — возвращаем в начало
-    if (direction === "right" && isAtEnd) {
-      el.scrollTo({ left: 0, behavior: "smooth" });
-      return;
-    }
-
-    const amount = el.clientWidth * 0.8 * (direction === "left" ? -1 : 1);
-
-    el.scrollBy({
-      left: amount,
-      behavior: "smooth",
-    });
-  };
-
-  return (
-    <section className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8">
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-[#2a1f44] md:text-2xl">
-          {title}
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <h2 className={`text-xl font-bold tracking-tight md:text-2xl ${textColor}`}>
+          <span className="inline-flex items-center gap-2">
+            <span
+              className={`inline-block w-1 h-4 rounded-sm ${dark ? "bg-[var(--signal)]" : "bg-[var(--signal-strong)]"}`}
+              aria-hidden="true"
+            />
+            {title}
+          </span>
         </h2>
 
-        <div className="flex gap-2">
-          {/* LEFT */}
-          <button
-            onClick={() => scrollRow("left")}
-            disabled={!canScrollLeft}
-            className={`flex h-10 w-10 items-center justify-center rounded-2xl transition ${
-              canScrollLeft
-                ? "bg-white text-[#5f4b84]"
-                : "bg-white/40 text-[#b6a8d1] cursor-default"
-            }`}
-          >
-            <ArrowLeftIcon />
-          </button>
-
-          {/* RIGHT */}
-          <button
-            onClick={() => scrollRow("right")}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#5f4b84]"
-          >
-            <ArrowRightIcon />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsExpanded((expanded) => !expanded)}
+          className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-bold transition ${btnBase} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal)]`}
+          aria-expanded={isExpanded}
+        >
+          {isExpanded ? "Свернуть" : "Смотреть все"}
+          <ArrowIcon expanded={isExpanded} />
+        </button>
       </div>
 
       <div
-        ref={rowRef}
-        onScroll={checkScroll}
-        className="flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={`flex gap-5 pb-2 md:gap-6 ${
+          isExpanded
+            ? "flex-wrap overflow-visible"
+            : "overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        }`}
       >
         {games.map((game) => (
           <GameCard
@@ -116,7 +92,13 @@ export default function GameRowSection({ title, games }: Props) {
             id={game.id}
             title={game.title}
             price={game.price}
+            originalPrice={game.originalPrice}
             image={game.image}
+            platform={game.platform}
+            russianVoice={game.russianVoice}
+            russianSubtitles={game.russianSubtitles}
+            englishVoice={gameLanguageSupport[game.id]?.englishVoice}
+            englishSubtitles={gameLanguageSupport[game.id]?.englishSubtitles}
           />
         ))}
       </div>
