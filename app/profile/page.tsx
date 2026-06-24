@@ -1,34 +1,12 @@
 import Link from "next/link";
-import { signIn, signOut, auth } from "@/auth";
+import { signOut, auth } from "@/auth";
+import AuthModal from "@/components/AuthModal";
+import FloatingBudgetStatus from "@/components/FloatingBudgetStatus";
 import Header from "@/components/Header";
-import ProfileLocalStats from "@/components/ProfileLocalStats";
 import { getAccountOverview } from "@/lib/account/queries";
+import { isAdminEmail } from "@/lib/auth/admin";
 
 export const dynamic = "force-dynamic";
-
-const providers = [
-  {
-    id: "google",
-    name: "Google",
-    note: "Для международных аккаунтов и быстрой верификации email",
-    idEnv: "AUTH_GOOGLE_ID",
-    secretEnv: "AUTH_GOOGLE_SECRET",
-  },
-  {
-    id: "yandex",
-    name: "Яндекс",
-    note: "Удобно для покупателей с российской почтой и сервисами Яндекса",
-    idEnv: "AUTH_YANDEX_ID",
-    secretEnv: "AUTH_YANDEX_SECRET",
-  },
-  {
-    id: "vk",
-    name: "ВКонтакте",
-    note: "Быстрый вход через VK ID",
-    idEnv: "AUTH_VK_ID",
-    secretEnv: "AUTH_VK_SECRET",
-  },
-];
 
 function formatRubles(valueMinor: number) {
   return new Intl.NumberFormat("ru-RU", {
@@ -53,6 +31,8 @@ export default async function ProfilePage() {
   const displayName =
     account?.customer.displayName ?? session?.user?.name ?? "Покупатель Lumo";
   const email = account?.customer.email ?? session?.user?.email ?? null;
+  const isSignedIn = Boolean(session?.user);
+  const isAdmin = isAdminEmail(email);
   const nextTierProgress =
     account?.loyalty.nextTier && account.loyalty.nextTier.requiredSpendMinor > 0
       ? Math.min(
@@ -90,24 +70,20 @@ export default async function ProfilePage() {
                 Личный кабинет
               </p>
               <h1 className="max-w-3xl font-[family-name:var(--font-unbounded)] text-3xl font-bold tracking-[-0.045em] md:text-5xl">
-                {session?.user ? displayName : "Вход, заказы и бонусы Lumo"}
+                {isSignedIn ? displayName : "Вход, заказы и бонусы Lumo"}
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/68">
-                {session?.user
+                {isSignedIn
                   ? "Здесь собраны данные покупателя, история заказов, статусы выдачи карт и персональная скидка по программе лояльности."
                   : "Войди через удобный OAuth-провайдер, чтобы сохранять данные покупателя, видеть историю заказов и получать персональные бонусы."}
               </p>
             </div>
 
-            <div className="rounded-[18px] border border-white/14 bg-white/[0.055] p-5">
-              <p className="text-sm font-bold text-white/58">Текущая сессия</p>
-              <p className="mt-3 text-2xl font-bold">
-                {session?.user ? "Вход выполнен" : "Вход не выполнен"}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-white/58">
-                {email ?? "Выбери Google, Яндекс или ВКонтакте ниже."}
-              </p>
-              {session?.user && (
+            {isSignedIn && (
+              <div className="rounded-[18px] border border-white/14 bg-white/[0.055] p-5">
+                <p className="text-sm font-bold text-white/58">Текущая сессия</p>
+                <p className="mt-3 text-2xl font-bold">Вход выполнен</p>
+                <p className="mt-2 text-sm leading-6 text-white/58">{email}</p>
                 <form
                   action={async () => {
                     "use server";
@@ -121,155 +97,163 @@ export default async function ProfilePage() {
                     Выйти
                   </button>
                 </form>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <section className="rounded-[24px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5 md:p-7">
-            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+        {!isSignedIn && (
+          <section className="mt-6 rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+              Доступ
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[var(--ink)]">
+              Войди, чтобы открыть кабинет
+            </h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
+              Авторизация откроется в модальном окне поверх текущей страницы.
+            </p>
+            <AuthModal
+              trigger={
+                <span className="mt-5 inline-flex rounded-[13px] bg-[var(--signal)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)]">
+                  Войти
+                </span>
+              }
+            />
+          </section>
+        )}
+
+        {isSignedIn && (
+          <section className="mt-6 overflow-hidden rounded-[24px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-4 md:p-5">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_430px]">
+              <div className="flex min-h-[220px] flex-col rounded-[20px] border border-[var(--line)] bg-[var(--paper-strong)] p-5 md:p-6">
+                <p className="text-sm font-bold text-[var(--text-muted)]">
+                  Бонусный статус
+                </p>
+                <div className="mt-4 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <h2 className="text-3xl font-black tracking-[-0.045em] text-[var(--ink)] md:text-4xl">
+                      {account?.loyalty.tierName ?? "Базовый"}
+                    </h2>
+                    <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
+                      {account?.loyalty.nextTier
+                        ? `До уровня ${account.loyalty.nextTier.name} осталось ${formatRubles(account.loyalty.nextTier.remainingSpendMinor)}.`
+                        : account
+                          ? "У тебя максимальный доступный уровень программы лояльности."
+                          : "После первого оплаченного заказа здесь появится прогресс до следующего уровня и персональная скидка."}
+                    </p>
+                  </div>
+                  <div className="shrink-0 rounded-[18px] bg-[var(--ink)] px-5 py-4 text-white">
+                    <span className="block text-xs font-bold uppercase tracking-[0.16em] text-white/50">
+                      Прогресс
+                    </span>
+                    <span className="mt-1 block text-3xl font-black text-[var(--signal)]">
+                      {nextTierProgress}%
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-auto pt-6">
+                  <div className="h-3 overflow-hidden rounded-full bg-[var(--line)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--signal-strong)]"
+                      style={{ width: `${nextTierProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex min-h-[220px] flex-col gap-3 rounded-[20px] bg-[var(--ink)] p-5 text-white md:p-6">
+                <div>
+                  <p className="text-sm font-bold text-white/55">
+                    Баланс и корзина
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-white/55">
+                    Быстро сверяй выбранный номинал с текущей корзиной.
+                  </p>
+                </div>
+                <div className="mt-auto">
+                  <FloatingBudgetStatus variant="embedded" />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {isAdmin && (
+          <section className="mt-6 rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5">
+            <p className="text-sm font-bold text-[var(--text-muted)]">
+              Админка
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-[var(--ink)]">
+              Управление курсами
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+              Измени курс INR/TRY к рублю и проверь превью цен.
+            </p>
+            <Link
+              href="/admin/pricing"
+              className="mt-5 inline-flex rounded-[13px] bg-[var(--signal)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)]"
+            >
+              Открыть курсы
+            </Link>
+          </section>
+        )}
+
+        {isSignedIn && (
+          <section className="mt-6 rounded-[24px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5 md:p-7">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                  Авторизация
+                  Заказы
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[var(--ink)]">
-                  {session?.user ? "Способы входа" : "Войти или создать аккаунт"}
+                  История покупок
                 </h2>
               </div>
-              <span className="w-fit rounded-[9px] bg-[var(--ink)] px-3 py-1.5 text-xs font-extrabold text-[var(--signal)]">
-                Auth.js
-              </span>
+              <Link
+                href="/cart"
+                className="inline-flex w-fit rounded-[13px] bg-[var(--signal)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)]"
+              >
+                Перейти в корзину
+              </Link>
             </div>
 
-            <div className="mt-6 grid gap-3 md:grid-cols-3">
-              {providers.map((provider) => {
-                const configured = Boolean(
-                  process.env[provider.idEnv] && process.env[provider.secretEnv],
-                );
-
-                return (
-                  <form
-                    key={provider.id}
-                    action={async () => {
-                      "use server";
-                      await signIn(provider.id, { redirectTo: "/profile" });
-                    }}
+            {account && account.orders.length > 0 ? (
+              <div className="mt-6 grid gap-3">
+                {account.orders.map((order) => (
+                  <article
+                    key={order.id}
+                    className="rounded-[18px] border border-[var(--line)] bg-[var(--paper-strong)] p-5"
                   >
-                    <button
-                      type="submit"
-                      disabled={!configured}
-                      className="h-full w-full rounded-[16px] border border-[var(--line)] bg-[var(--paper-strong)] p-4 text-left transition hover:border-[var(--line-strong)] hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:border-[var(--line)] disabled:hover:bg-[var(--paper-strong)]"
-                    >
-                      <span className="block text-lg font-extrabold text-[var(--ink)]">
-                        {provider.name}
-                      </span>
-                      <span className="mt-2 block text-sm leading-6 text-[var(--text-muted)]">
-                        {configured
-                          ? provider.note
-                          : `Нужны ${provider.idEnv} и ${provider.secretEnv}`}
-                      </span>
-                    </button>
-                  </form>
-                );
-              })}
-            </div>
-
-            {!session?.user && (
-              <div className="mt-6 rounded-[18px] border border-dashed border-[var(--line-strong)] bg-[var(--paper)] p-5">
-                <h3 className="text-lg font-bold text-[var(--ink)]">
-                  Что уже подключено
+                    <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <p className="text-sm font-bold text-[var(--text-muted)]">
+                          Заказ {order.publicId}
+                        </p>
+                        <h3 className="mt-1 text-xl font-bold text-[var(--ink)]">
+                          {formatRubles(order.totalMinor)}
+                        </h3>
+                      </div>
+                      <div className="text-sm font-semibold text-[var(--text-muted)]">
+                        {formatDate(order.createdAt)} · {order.status}
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-6 rounded-[18px] border border-dashed border-[var(--line-strong)] bg-[var(--paper)] px-5 py-10 text-center">
+                <h3 className="text-xl font-bold text-[var(--ink)]">
+                  Заказов пока нет
                 </h3>
-                <div className="mt-4 grid gap-3 text-sm leading-6 text-[var(--text-muted)] sm:grid-cols-2">
-                  <p>Callback-роуты Auth.js для Google, Яндекса и VK.</p>
-                  <p>JWT-сессия с customerId внутри session.user.</p>
-                  <p>Связка OAuth identity с customers и customer_profiles.</p>
-                  <p>Подтягивание заказов через getAccountOverview после входа.</p>
-                </div>
+                <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
+                  Когда появятся оплаченные заказы, здесь будут номера, статусы
+                  оплаты, выдача кодов и суммы с учётом скидок.
+                </p>
               </div>
             )}
           </section>
-
-          <aside className="grid gap-4">
-            <ProfileLocalStats />
-
-            <section className="rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5">
-              <p className="text-sm font-bold text-[var(--text-muted)]">
-                Бонусный статус
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-[var(--ink)]">
-                {account?.loyalty.tierName ?? "Базовый"}
-              </h2>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--line)]">
-                <div
-                  className="h-full rounded-full bg-[var(--signal-strong)]"
-                  style={{ width: `${nextTierProgress}%` }}
-                />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                {account?.loyalty.nextTier
-                  ? `До уровня ${account.loyalty.nextTier.name} осталось ${formatRubles(account.loyalty.nextTier.remainingSpendMinor)}.`
-                  : account
-                    ? "У тебя максимальный доступный уровень программы лояльности."
-                    : "После первого оплаченного заказа здесь появится прогресс до следующего уровня и персональная скидка."}
-              </p>
-            </section>
-          </aside>
-        </div>
-
-        <section className="mt-6 rounded-[24px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5 md:p-7">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                Заказы
-              </p>
-              <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[var(--ink)]">
-                История покупок
-              </h2>
-            </div>
-            <Link
-              href="/cart"
-              className="inline-flex w-fit rounded-[13px] bg-[var(--signal)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)]"
-            >
-              Перейти в корзину
-            </Link>
-          </div>
-
-          {account && account.orders.length > 0 ? (
-            <div className="mt-6 grid gap-3">
-              {account.orders.map((order) => (
-                <article
-                  key={order.id}
-                  className="rounded-[18px] border border-[var(--line)] bg-[var(--paper-strong)] p-5"
-                >
-                  <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                    <div>
-                      <p className="text-sm font-bold text-[var(--text-muted)]">
-                        Заказ {order.publicId}
-                      </p>
-                      <h3 className="mt-1 text-xl font-bold text-[var(--ink)]">
-                        {formatRubles(order.totalMinor)}
-                      </h3>
-                    </div>
-                    <div className="text-sm font-semibold text-[var(--text-muted)]">
-                      {formatDate(order.createdAt)} · {order.status}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-[18px] border border-dashed border-[var(--line-strong)] bg-[var(--paper)] px-5 py-10 text-center">
-              <h3 className="text-xl font-bold text-[var(--ink)]">
-                Заказов пока нет
-              </h3>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
-                Когда появятся оплаченные заказы, здесь будут номера, статусы
-                оплаты, выдача кодов и суммы с учётом скидок.
-              </p>
-            </div>
-          )}
-        </section>
+        )}
       </main>
     </>
   );

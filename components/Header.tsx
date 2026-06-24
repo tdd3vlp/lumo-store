@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import AuthModal from "@/components/AuthModal";
+import CartPreview from "@/components/CartPreview";
 import { REGION_CONFIG } from "@/lib/gift-cards/regions";
 import { useStore, type StoreRegion } from "@/store/useStore";
 
@@ -129,6 +131,8 @@ export default function Header() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<StoreRegion>("TR");
 
   const cartCount = useMemo(
@@ -146,36 +150,55 @@ export default function Header() {
     };
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((session: { user?: unknown } | null) => {
+        if (active) setIsAuthenticated(Boolean(session?.user));
+      })
+      .catch(() => {
+        if (active) setIsAuthenticated(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <>
       <header className="sticky top-0 z-50 bg-[var(--ink)] border-b border-[var(--line-inverse)]">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:gap-4 md:px-6 lg:px-8">
-          {/* Wordmark */}
-          <Link href="/" className="flex items-center gap-1.5 shrink-0 group">
-            <span className="font-[family-name:var(--font-unbounded)] text-xl font-black text-white tracking-tight leading-none">
-              LUMO
-            </span>
-            <span
-              className="h-1.5 w-1.5 rounded-full bg-[var(--signal)] transition group-hover:scale-125"
-              aria-hidden="true"
-            />
-          </Link>
+        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr] items-center gap-3 px-4 py-3 md:grid-cols-[minmax(0,440px)_1fr_auto] md:gap-4 md:px-6 lg:grid-cols-[minmax(0,500px)_1fr_auto] lg:px-8">
+          <div className="flex min-w-0 items-center gap-3 md:gap-4">
+            {/* Wordmark */}
+            <Link href="/" className="flex shrink-0 items-center gap-1.5 group">
+              <span className="font-[family-name:var(--font-unbounded)] text-xl font-black text-white tracking-tight leading-none">
+                LUMO
+              </span>
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-[var(--signal)] transition group-hover:scale-125"
+                aria-hidden="true"
+              />
+            </Link>
 
-          {/* Search – desktop */}
-          <div className="hidden md:flex flex-1 items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--ink-soft)] border border-[var(--line-inverse)] focus-within:border-white/30 transition">
-            <SearchIcon className="text-[var(--text-muted)] shrink-0" />
-            <input
-              type="search"
-              placeholder="Найти игру или дополнение"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
-            />
+            {/* Search – desktop */}
+            <div className="hidden w-full max-w-[310px] items-center gap-2 rounded-xl border border-[var(--line-inverse)] bg-[var(--ink-soft)] px-3 py-2.5 transition focus-within:border-white/30 md:flex lg:max-w-[360px]">
+              <SearchIcon className="shrink-0 text-[var(--text-muted)]" />
+              <input
+                type="search"
+                placeholder="Найти игру"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
+              />
+            </div>
           </div>
 
           {/* Region – desktop */}
           <div
-            className="hidden md:flex items-center gap-1 rounded-xl border border-[var(--line-inverse)] bg-[var(--ink-soft)] p-1"
+            className="hidden justify-self-center md:flex items-center gap-1 rounded-xl border border-[var(--line-inverse)] bg-[var(--ink-soft)] p-1"
             role="group"
             aria-label="Выбор региона"
           >
@@ -200,46 +223,65 @@ export default function Header() {
             })}
           </div>
 
-          {/* Profile – desktop */}
-          <Link
-            href="/profile"
-            className="hidden md:flex items-center justify-center h-10 w-10 rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
-            aria-label="Профиль"
-          >
-            <UserIcon />
-          </Link>
-
-          {/* Favorites – desktop */}
-          <Link
-            href="/favorites"
-            className="hidden md:flex relative items-center justify-center h-10 w-10 rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
-            aria-label={`Избранное${favCount > 0 ? `, ${favCount} игр` : ""}`}
-          >
-            <HeartIcon />
-            {favCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-0.5 rounded-full bg-[var(--signal)] text-[var(--ink)] text-[9px] font-black flex items-center justify-center leading-none">
-                {favCount}
-              </span>
+          <div className="hidden items-center gap-2 justify-self-end md:flex">
+            {/* Profile – desktop */}
+            {isAuthenticated ? (
+              <Link
+                href="/profile"
+                className="flex h-10 min-w-[112px] items-center justify-center gap-2 rounded-xl border border-[var(--line-inverse)] px-3 text-sm font-bold text-white/80 transition hover:border-white/40 hover:text-white focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
+                aria-label="Профиль"
+              >
+                <UserIcon />
+                <span>Профиль</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(true)}
+                className="flex h-10 min-w-[112px] items-center justify-center gap-2 rounded-xl border border-[var(--line-inverse)] px-3 text-sm font-bold text-white/80 transition hover:border-white/40 hover:text-white focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
+                aria-label="Войти"
+              >
+                <UserIcon />
+                <span>Войти</span>
+              </button>
             )}
-          </Link>
 
-          {/* Cart – desktop */}
-          <Link
-            href="/cart"
-            className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--line-inverse)] text-white/80 text-sm font-medium transition hover:text-white hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
-            aria-label={`Корзина${cartCount > 0 ? `, ${cartCount} товаров` : ""}`}
-          >
-            <CartIcon />
-            <span>Корзина</span>
-            {cartCount > 0 && (
-              <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-[var(--signal)] text-[var(--ink)] text-xs font-black leading-none">
-                {cartCount}
-              </span>
-            )}
-          </Link>
+            {/* Favorites – desktop */}
+            <Link
+              href="/favorites"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
+              aria-label={`Избранное${favCount > 0 ? `, ${favCount} игр` : ""}`}
+            >
+              <HeartIcon />
+              {favCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-0.5 rounded-full bg-[var(--signal)] text-[var(--ink)] text-[9px] font-black flex items-center justify-center leading-none">
+                  {favCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Cart – desktop */}
+            <div>
+              <CartPreview>
+                <Link
+                  href="/cart"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--line-inverse)] text-white/80 text-sm font-medium transition hover:text-white hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
+                  aria-label={`Корзина${cartCount > 0 ? `, ${cartCount} товаров` : ""}`}
+                >
+                  <CartIcon />
+                  <span>Корзина</span>
+                  {cartCount > 0 && (
+                    <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-[var(--signal)] text-[var(--ink)] text-xs font-black leading-none">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+              </CartPreview>
+            </div>
+          </div>
 
           {/* Mobile icons */}
-          <div className="flex items-center gap-2 md:hidden ml-auto">
+          <div className="flex items-center gap-2 md:hidden justify-self-end">
             <button
               type="button"
               onClick={() => setMobileSearchOpen((v) => !v)}
@@ -261,26 +303,39 @@ export default function Header() {
               {selectedRegion}
             </button>
 
-            <Link
-              href="/profile"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
-              aria-label="Профиль"
-            >
-              <UserIcon />
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/profile"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
+                aria-label="Профиль"
+              >
+                <UserIcon />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
+                aria-label="Войти"
+              >
+                <UserIcon />
+              </button>
+            )}
 
-            <Link
-              href="/cart"
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
-              aria-label={`Корзина${cartCount > 0 ? `, ${cartCount} товаров` : ""}`}
-            >
-              <CartIcon />
-              {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-0.5 rounded-full bg-[var(--signal)] text-[var(--ink)] text-[9px] font-black flex items-center justify-center leading-none">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+            <CartPreview>
+              <Link
+                href="/cart"
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
+                aria-label={`Корзина${cartCount > 0 ? `, ${cartCount} товаров` : ""}`}
+              >
+                <CartIcon />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-0.5 rounded-full bg-[var(--signal)] text-[var(--ink)] text-[9px] font-black flex items-center justify-center leading-none">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </CartPreview>
 
             <button
               type="button"
@@ -374,13 +429,26 @@ export default function Header() {
               >
                 <span className="text-sm font-medium">Главная</span>
               </Link>
-              <Link
-                href="/profile"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between rounded-xl px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition"
-              >
-                <span className="text-sm font-medium">Профиль</span>
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between rounded-xl px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition"
+                >
+                  <span className="text-sm font-medium">Профиль</span>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setAuthModalOpen(true);
+                  }}
+                  className="flex items-center justify-between rounded-xl px-4 py-3 text-left text-white/80 hover:text-white hover:bg-white/5 transition"
+                >
+                  <span className="text-sm font-medium">Войти</span>
+                </button>
+              )}
               <Link
                 href="/favorites"
                 onClick={() => setMobileMenuOpen(false)}
@@ -393,22 +461,26 @@ export default function Header() {
                   </span>
                 )}
               </Link>
-              <Link
-                href="/cart"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between rounded-xl px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition"
-              >
-                <span className="text-sm font-medium">Корзина</span>
-                {cartCount > 0 && (
-                  <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-[var(--signal)] text-[var(--ink)] text-xs font-black leading-none">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
+              <CartPreview placement="above-right">
+                <Link
+                  href="/cart"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between rounded-xl px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition"
+                >
+                  <span className="text-sm font-medium">Корзина</span>
+                  {cartCount > 0 && (
+                    <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-[var(--signal)] text-[var(--ink)] text-xs font-black leading-none">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+              </CartPreview>
             </nav>
           </aside>
         </div>
       )}
+
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </>
   );
 }

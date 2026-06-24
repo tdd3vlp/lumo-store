@@ -3,12 +3,17 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import CartPreview from "@/components/CartPreview";
 import { useStore } from "@/store/useStore";
 
 type AnchorPosition = {
   left: number;
   top: number;
   width: number;
+};
+
+type FloatingBudgetStatusProps = {
+  variant?: "floating" | "embedded";
 };
 
 function CartIcon() {
@@ -31,7 +36,9 @@ function CartIcon() {
   );
 }
 
-export default function FloatingBudgetStatus() {
+export default function FloatingBudgetStatus({
+  variant = "floating",
+}: FloatingBudgetStatusProps) {
   const pathname = usePathname();
   const selectedBudget = useStore((state) => state.selectedBudget);
   const cart = useStore((state) => state.cart);
@@ -51,9 +58,10 @@ export default function FloatingBudgetStatus() {
   );
 
   const isHome = pathname === "/";
+  const isEmbedded = variant === "embedded";
 
   useEffect(() => {
-    if (!isHome) return;
+    if (!isHome || isEmbedded) return;
 
     const updatePosition = () => {
       setIsScrolled(window.scrollY > 12);
@@ -80,11 +88,11 @@ export default function FloatingBudgetStatus() {
       window.removeEventListener("scroll", updatePosition);
       window.removeEventListener("resize", updatePosition);
     };
-  }, [isHome]);
+  }, [isEmbedded, isHome]);
 
   const exceedsBudget = cartTotal > selectedBudget;
   const difference = Math.abs(selectedBudget - cartTotal);
-  const isAtHero = isHome && !isScrolled;
+  const isAtHero = isHome && !isScrolled && !isEmbedded;
   const positionStyle: CSSProperties | undefined =
     isAtHero && anchorPosition
       ? {
@@ -94,17 +102,25 @@ export default function FloatingBudgetStatus() {
         }
       : undefined;
 
+  if (variant === "floating" && pathname === "/profile") return null;
+
   return (
     <aside
-      className={`floating-budget-status ${
-        isAtHero
-          ? "floating-budget-status--hero"
-          : isHome
-            ? "floating-budget-status--top"
-            : "floating-budget-status--bottom"
-      }`}
-      style={positionStyle}
-      data-positioned={!isAtHero || anchorPosition ? "true" : "false"}
+      className={
+        isEmbedded
+          ? "grid min-h-[116px] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border border-white/14 bg-white/[0.055] p-4 text-white"
+          : `floating-budget-status ${
+              isAtHero
+                ? "floating-budget-status--hero"
+                : isHome
+                  ? "floating-budget-status--top"
+                  : "floating-budget-status--bottom"
+            }`
+      }
+      style={isEmbedded ? undefined : positionStyle}
+      data-positioned={
+        isEmbedded || !isAtHero || anchorPosition ? "true" : "false"
+      }
       aria-label="Остаток баланса"
     >
       <div className="border-r border-white/15 pr-3 sm:pr-4">
@@ -136,18 +152,20 @@ export default function FloatingBudgetStatus() {
         </div>
       </dl>
 
-      <Link
-        href="/cart"
-        className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[var(--signal)] bg-[var(--signal)] text-[var(--ink)] transition hover:bg-[var(--signal-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-        aria-label={`Перейти в корзину, товаров: ${cartCount}`}
-      >
-        <CartIcon />
-        {cartCount > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--ink)] bg-[var(--coral)] px-1 text-[10px] font-extrabold leading-none text-white shadow-[0_2px_6px_rgba(0,0,0,0.28)]">
-            {cartCount > 99 ? "99+" : cartCount}
-          </span>
-        )}
-      </Link>
+      <CartPreview placement={isEmbedded ? "above-right" : "left"}>
+        <Link
+          href="/cart"
+          className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[var(--signal)] bg-[var(--signal)] text-[var(--ink)] transition hover:bg-[var(--signal-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          aria-label={`Перейти в корзину, товаров: ${cartCount}`}
+        >
+          <CartIcon />
+          {cartCount > 0 && (
+            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--ink)] bg-[var(--coral)] px-1 text-[10px] font-extrabold leading-none text-white shadow-[0_2px_6px_rgba(0,0,0,0.28)]">
+              {cartCount > 99 ? "99+" : cartCount}
+            </span>
+          )}
+        </Link>
+      </CartPreview>
     </aside>
   );
 }
