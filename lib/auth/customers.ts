@@ -26,21 +26,25 @@ export async function linkAuthIdentity(input: {
       return existingIdentity.customer_id as string;
     }
 
-    const [customer] = await transaction`
-      INSERT INTO customers (email, email_verified_at)
-      VALUES (
-        ${normalizedEmail},
-        ${input.emailVerified ? new Date() : null}
-      )
-      ON CONFLICT (email) DO UPDATE SET
-        email_verified_at = CASE
-          WHEN ${input.emailVerified}
-            THEN COALESCE(customers.email_verified_at, now())
-          ELSE customers.email_verified_at
-        END,
-        updated_at = now()
-      RETURNING id
-    `;
+    const [customer] = input.emailVerified
+      ? await transaction`
+          INSERT INTO customers (email, email_verified_at)
+          VALUES (${normalizedEmail}, now())
+          ON CONFLICT (email) DO UPDATE SET
+            email_verified_at = COALESCE(customers.email_verified_at, now()),
+            updated_at = now()
+          RETURNING id
+        `
+      : await transaction`
+          INSERT INTO customers (email, email_verified_at)
+          VALUES (${normalizedEmail}, null)
+          ON CONFLICT (email) DO NOTHING
+          RETURNING id
+        `;
+
+    if (!customer) {
+      throw new Error("Cannot link unverified OAuth email to an existing customer");
+    }
 
     await transaction`
       INSERT INTO customer_profiles (customer_id)
@@ -66,4 +70,3 @@ export async function linkAuthIdentity(input: {
     return customer.id as string;
   });
 }
-

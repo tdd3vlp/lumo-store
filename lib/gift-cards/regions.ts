@@ -1,4 +1,5 @@
 import type { StoreRegion } from "@/store/useStore";
+import { formatRubles as formatRublesMinor } from "@/lib/pricing/rates";
 
 export type RegionConfig = {
   code: StoreRegion;
@@ -36,10 +37,6 @@ export function formatRegionalAmount(region: StoreRegion, value: number) {
 export function formatRubles(valueMinor: number | null) {
   if (valueMinor === null) return "Цена уточняется";
 
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-    maximumFractionDigits: 0,
-  }).format(valueMinor / 100);
+  return formatRublesMinor(valueMinor);
 }
 
