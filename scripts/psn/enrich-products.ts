@@ -21,7 +21,6 @@
  *   --limit=N            default: 200
  */
 
-import OpenAI from "openai";
 import { PsnBrowserClient } from "../../lib/psn/browser-client";
 import { parseProductFromWCA } from "../../lib/psn/parser";
 import {
@@ -115,8 +114,6 @@ if (phase === "ai" || phase === "all") {
     process.exit(0);
   }
 
-  const openai = new OpenAI({ apiKey });
-
   for (const region of REGIONS) {
     console.log(`\n${"═".repeat(60)}`);
     console.log(`[AI] Processing ${region} products…`);
@@ -132,45 +129,41 @@ if (phase === "ai" || phase === "all") {
 
       try {
         const needsTranslation = !descriptionRuText;
-        const sourceText = descriptionRuText ?? descriptionOriginalText ?? "";
 
-        let systemPrompt: string;
-        let userPrompt: string;
+        const systemPrompt =
+          "You are a game catalog assistant for a PlayStation Store pricing site targeting Russian-speaking users. " +
+          "Respond with valid JSON only, no markdown fences.";
 
-        if (needsTranslation) {
-          systemPrompt =
-            "You are a game catalog assistant for a PlayStation Store pricing site targeting Russian-speaking users. " +
-            "Respond with valid JSON only, no markdown.";
-          userPrompt =
-            `Game title: ${title}\n\nEnglish description:\n${descriptionOriginalText}\n\n` +
-            `Return JSON:\n` +
-            `{\n  "translation": "Full Russian translation of the description",\n` +
-            `  "summary": "1-2 sentence summary in Russian that helps a customer decide whether to buy"\n}`;
-        } else {
-          systemPrompt =
-            "You are a game catalog assistant for a PlayStation Store pricing site targeting Russian-speaking users. " +
-            "Respond with valid JSON only, no markdown.";
-          userPrompt =
-            `Game title: ${title}\n\nRussian description:\n${sourceText}\n\n` +
-            `Return JSON:\n` +
-            `{\n  "summary": "1-2 sentence summary in Russian that helps a customer decide whether to buy"\n}`;
-        }
+        const userPrompt = needsTranslation
+          ? `Game title: ${title}\n\nEnglish description:\n${descriptionOriginalText}\n\n` +
+            `Return JSON: { "translation": "full Russian translation", "summary": "1-2 sentence Russian summary for a buyer" }`
+          : `Game title: ${title}\n\nRussian description:\n${descriptionRuText}\n\n` +
+            `Return JSON: { "summary": "1-2 sentence Russian summary for a buyer" }`;
 
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user",   content: userPrompt },
-          ],
-          max_tokens: needsTranslation ? 2000 : 300,
-          temperature: 0.3,
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user",   content: userPrompt },
+            ],
+            max_tokens: needsTranslation ? 2000 : 300,
+            temperature: 0.3,
+          }),
         });
 
-        const raw = response.choices[0]?.message?.content ?? "{}";
-        const parsed = JSON.parse(raw) as {
-          translation?: string;
-          summary?: string;
+        if (!res.ok) throw new Error(`OpenAI ${res.status}: ${await res.text()}`);
+
+        const json = (await res.json()) as {
+          choices: Array<{ message: { content: string } }>;
         };
+        const raw = json.choices[0]?.message?.content ?? "{}";
+        const parsed = JSON.parse(raw) as { translation?: string; summary?: string };
 
         if (!parsed.summary) throw new Error("GPT returned no summary");
 
