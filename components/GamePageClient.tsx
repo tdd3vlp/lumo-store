@@ -99,7 +99,11 @@ export default function GamePageClient({ game }: { game: Game }) {
   const tryRate = useRegionRate("TR");
 
   const [selectedEditionId, setSelectedEditionId] = useState(
-    game?.editions[0]?.id ?? "",
+    // Select the edition matching the current product's stableId (the URL we navigated to),
+    // falling back to first edition if only one exists or match not found.
+    game.editions.find((e) => e.id === String(game.id))?.id ??
+      game?.editions[0]?.id ??
+      "",
   );
   const [screenshots, setScreenshots] = useState<string[]>(
     game?.screenshots ?? [],

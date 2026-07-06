@@ -2,7 +2,7 @@ import "server-only";
 import { createDatabaseClient } from "@/lib/database";
 import type { Game } from "@/data/mockGames";
 import type { PsnRegion } from "./types";
-import { WELL_KNOWN_COLLECTIONS } from "./types";
+import { WELL_KNOWN_COLLECTIONS, LOCALE_BY_REGION } from "./types";
 import { FEATURED_PROMOS } from "@/lib/featured-promo";
 
 const sql = createDatabaseClient(3);
@@ -80,7 +80,7 @@ function rowToGame(region: PsnRegion, r: ProductRow): Game {
     englishSubtitles: hasLanguage(subtitleLanguages, "en"),
     rating: r.rating != null ? parseFloat(String(r.rating)) : null,
     releaseDate,
-    psStoreUrl: r.store_url,
+    psStoreUrl: `https://store.playstation.com/${LOCALE_BY_REGION[region]}/product/${r.psn_product_id}`,
     editions: [{ id: "standard", name: r.title, price, originalPrice }],
     screenshots: r.screenshot_urls ?? [],
     genres: r.genres ?? [],
@@ -185,15 +185,46 @@ async function getAllProductsForRegion(region: PsnRegion): Promise<ProductRow[]>
 }
 
 export async function getPsnGameById(id: number): Promise<Game | null> {
-  // Fast path: on-sale products
-  const saleRows = await saleProductSelect("TR");
-  const saleRow = saleRows.find((r) => stableId(r.psn_product_id) === id);
-  if (saleRow) return rowToGame("TR", saleRow);
+  // Fetch both in parallel: saleRows for accurate discount prices, allRows for
+  // non-sale products (pre-orders, new releases) and for sibling editions lookup.
+  const [saleRows, allRows] = await Promise.all([
+    saleProductSelect("TR"),
+    getAllProductsForRegion("TR"),
+  ]);
 
-  // Fallback: all products (covers pre-orders, new releases, non-discounted)
-  const allRows = await getAllProductsForRegion("TR");
-  const row = allRows.find((r) => stableId(r.psn_product_id) === id);
-  return row ? rowToGame("TR", row) : null;
+  // Prefer the sale row (has confirmed price_minor < original_price_minor).
+  const row =
+    saleRows.find((r) => stableId(r.psn_product_id) === id) ??
+    allRows.find((r) => stableId(r.psn_product_id) === id);
+
+  if (!row) return null;
+
+  const game = rowToGame("TR", row);
+
+  // Enrich editions: find all products sharing the same np_title_id.
+  if (row.np_title_id) {
+    const siblings = allRows
+      .filter((r) => r.np_title_id === row.np_title_id)
+      .sort(
+        (a, b) =>
+          (a.price_minor ?? Number.MAX_SAFE_INTEGER) -
+          (b.price_minor ?? Number.MAX_SAFE_INTEGER),
+      );
+
+    if (siblings.length > 1) {
+      game.editions = siblings.map((r) => ({
+        id: String(stableId(r.psn_product_id)),
+        name: r.title,
+        price: r.price_minor != null ? Math.round(r.price_minor / 100) : null,
+        originalPrice:
+          r.original_price_minor != null
+            ? Math.round(r.original_price_minor / 100)
+            : null,
+      }));
+    }
+  }
+
+  return game;
 }
 
 // ─── Collections ─────────────────────────────────────────────────────────────

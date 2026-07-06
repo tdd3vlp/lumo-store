@@ -140,11 +140,11 @@ export default function RegionSections({
   const bottomRows = (
     <>
       <GameRowSection title="Скидки недели" games={weekDeals} />
-      {genreSections.map(({ title, games: g }) => (
-        <GameRowSection key={title} title={title} games={g} />
-      ))}
       {activeCollections.map(({ id, nameRu, games: g }) => (
         <GameRowSection key={id} title={nameRu} games={g} />
+      ))}
+      {genreSections.map(({ title, games: g }) => (
+        <GameRowSection key={title} title={title} games={g} />
       ))}
     </>
   );
