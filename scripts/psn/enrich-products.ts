@@ -35,16 +35,19 @@ import type { PsnRegion } from "../../lib/psn/types";
 // ─── CLI args ─────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
-const arg = (name: string) =>
-  args.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ??
-  args[args.indexOf(`--${name}`) + 1] ??
-  undefined;
+const arg = (name: string) => {
+  const eq = args.find((a) => a.startsWith(`--${name}=`));
+  if (eq) return eq.split("=")[1];
+  const idx = args.indexOf(`--${name}`);
+  return idx !== -1 ? args[idx + 1] : undefined;
+};
 
 const phase  = (arg("phase")  ?? "all") as "psn" | "ai" | "all";
 const regionArg = arg("region") ?? "ALL";
 const limit  = Number(arg("limit") ?? "200");
 
 const REGIONS: PsnRegion[] = regionArg === "ALL" ? ["TR"] : [regionArg as PsnRegion];
+
 
 const CATEGORY_URL_FOR_SESSION: Record<PsnRegion, string> = {
   TR: "https://store.playstation.com/en-tr/category/3f772501-f6f8-49b7-abac-874a88ca4897/1",
