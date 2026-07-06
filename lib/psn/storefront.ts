@@ -9,6 +9,7 @@ const sql = createDatabaseClient(3);
 
 type ProductRow = {
   psn_product_id: string;
+  np_title_id: string | null;
   title: string;
   image_url: string | null;
   platforms: string[];
@@ -96,6 +97,7 @@ function saleProductSelect(region: PsnRegion) {
   return sql<ProductRow[]>`
     SELECT
       p.psn_product_id,
+      p.np_title_id,
       p.title,
       p.image_url,
       p.platforms,
@@ -132,22 +134,66 @@ function saleProductSelect(region: PsnRegion) {
   `;
 }
 
+function dedupByTitle(rows: ProductRow[]): ProductRow[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const key = row.np_title_id ?? row.psn_product_id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function getPsnGamesForRegion(region: PsnRegion): Promise<Game[]> {
   const rows = await saleProductSelect(region);
-  return rows.map((row) => rowToGame(region, row));
+  return dedupByTitle(rows).map((row) => rowToGame(region, row));
+}
+
+async function getAllProductsForRegion(region: PsnRegion): Promise<ProductRow[]> {
+  return sql<ProductRow[]>`
+    SELECT
+      p.psn_product_id,
+      p.np_title_id,
+      p.title,
+      p.image_url,
+      p.platforms,
+      p.store_url,
+      p.voice_languages,
+      p.subtitle_languages,
+      p.rating,
+      p.ratings_count,
+      p.release_date,
+      p.genres,
+      p.publisher,
+      p.description_ru_text,
+      p.description_original_text,
+      p.sales_rank,
+      p.sale_end_date,
+      p.screenshot_urls,
+      s.price_minor,
+      s.original_price_minor
+    FROM psn_regional_products p
+    LEFT JOIN LATERAL (
+      SELECT price_minor, original_price_minor
+      FROM   psn_price_snapshots
+      WHERE  psn_regional_product_id = p.id
+      ORDER  BY fetched_at DESC
+      LIMIT  1
+    ) s ON true
+    WHERE p.region = ${region}
+  `;
 }
 
 export async function getPsnGameById(id: number): Promise<Game | null> {
-  const trGames = await saleProductSelect("TR");
+  // Fast path: on-sale products
+  const saleRows = await saleProductSelect("TR");
+  const saleRow = saleRows.find((r) => stableId(r.psn_product_id) === id);
+  if (saleRow) return rowToGame("TR", saleRow);
 
-  for (const [region, rows] of [
-    ["TR", trGames],
-  ] as const) {
-    const row = rows.find((item) => stableId(item.psn_product_id) === id);
-    if (row) return rowToGame(region, row);
-  }
-
-  return null;
+  // Fallback: all products (covers pre-orders, new releases, non-discounted)
+  const allRows = await getAllProductsForRegion("TR");
+  const row = allRows.find((r) => stableId(r.psn_product_id) === id);
+  return row ? rowToGame("TR", row) : null;
 }
 
 // ─── Collections ─────────────────────────────────────────────────────────────
@@ -171,6 +217,7 @@ export async function getCollectionsForRegion(
       c.id          AS collection_id,
       c.name_ru,
       p.psn_product_id,
+      p.np_title_id,
       p.title,
       p.image_url,
       p.platforms,
@@ -205,6 +252,8 @@ export async function getCollectionsForRegion(
   `;
 
   const byCollection = new Map<string, CollectionSection>();
+  const seenTitles = new Map<string, Set<string>>();
+
   for (const row of rows) {
     if (!byCollection.has(row.collection_id)) {
       byCollection.set(row.collection_id, {
@@ -212,7 +261,11 @@ export async function getCollectionsForRegion(
         nameRu: row.name_ru,
         games: [],
       });
+      seenTitles.set(row.collection_id, new Set());
     }
+    const titleKey = row.np_title_id ?? row.psn_product_id;
+    if (seenTitles.get(row.collection_id)!.has(titleKey)) continue;
+    seenTitles.get(row.collection_id)!.add(titleKey);
     byCollection.get(row.collection_id)!.games.push(rowToGame(region, row));
   }
 

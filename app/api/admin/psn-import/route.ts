@@ -23,7 +23,7 @@ export async function GET() {
   if (denied) return denied;
 
   try {
-    const jobs = await listJobs(30);
+    const jobs = await listJobs(8);
     return Response.json({ jobs });
   } catch (err) {
     return Response.json({ error: (err as Error).message }, { status: 500 });

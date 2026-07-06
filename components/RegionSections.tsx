@@ -13,6 +13,7 @@ type Props = {
   collections: Record<StoreRegion, CollectionSection[]>;
   staticNewGames?: Game[];
   staticPreorders?: Game[];
+  part?: "top" | "bottom";
 };
 
 // Genres we show as dedicated rows, in display order.
@@ -34,6 +35,7 @@ export default function RegionSections({
   collections,
   staticNewGames = [],
   staticPreorders = [],
+  part,
 }: Props) {
   const selectedRegion = useStore((s) => s.selectedRegion);
   const games = useMemo(
@@ -120,9 +122,8 @@ export default function RegionSections({
     });
   }, [games, ratingStats]);
 
-  return (
-    <div className="space-y-10 md:space-y-12">
-      <GameRowSection title="Скидки недели" games={weekDeals} />
+  const topRows = (
+    <>
       {salesLeaders.length > 0 && (
         <GameRowSection title="Лидеры продаж" games={salesLeaders} />
       )}
@@ -133,12 +134,26 @@ export default function RegionSections({
       {preordersRow.length > 0 && (
         <GameRowSection title="Предзаказы" games={preordersRow} />
       )}
+    </>
+  );
+
+  const bottomRows = (
+    <>
+      <GameRowSection title="Скидки недели" games={weekDeals} />
       {genreSections.map(({ title, games: g }) => (
         <GameRowSection key={title} title={title} games={g} />
       ))}
       {activeCollections.map(({ id, nameRu, games: g }) => (
         <GameRowSection key={id} title={nameRu} games={g} />
       ))}
+    </>
+  );
+
+  return (
+    <div className="space-y-10 md:space-y-12">
+      {part === "top"    ? topRows    :
+       part === "bottom" ? bottomRows :
+       <>{topRows}{bottomRows}</>}
     </div>
   );
 }

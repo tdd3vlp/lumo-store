@@ -68,22 +68,32 @@ export default async function Home() {
         />
       )}
 
-      {/* Игры под бюджет — клиентский, переключается по selectedRegion */}
-      <div className="mt-10">
-        <BudgetGamesSection catalog={catalog} />
-      </div>
-
-      <div className="mt-8">
-        <TrustStrip />
-      </div>
-
-      {/* Все подборки — клиентский, переключается по selectedRegion */}
+      {/* Лидеры продаж, Выбор покупателей, Новинки, Предзаказы */}
       <div className="mt-10">
         <RegionSections
           catalog={catalog}
           collections={collections}
           staticNewGames={newGames.slice(0, 20)}
           staticPreorders={preorderGames.slice(0, 20)}
+          part="top"
+        />
+      </div>
+
+      <div className="mt-10">
+        <TrustStrip />
+      </div>
+
+      {/* Игры под бюджет */}
+      <div className="mt-10">
+        <BudgetGamesSection catalog={catalog} />
+      </div>
+
+      {/* Скидки недели, жанры, коллекции */}
+      <div className="mt-10">
+        <RegionSections
+          catalog={catalog}
+          collections={collections}
+          part="bottom"
         />
       </div>
     </main>
