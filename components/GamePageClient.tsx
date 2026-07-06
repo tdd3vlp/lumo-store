@@ -345,7 +345,12 @@ export default function GamePageClient({ game }: { game: Game }) {
             <h2 className="text-2xl font-bold tracking-[-0.035em] text-[var(--ink)]">
               Описание
             </h2>
-            <p className="mt-4 whitespace-pre-line text-[15px] leading-7 text-[var(--text-muted)] md:text-base">
+            {game.summaryRu && (
+              <p className="mt-4 text-[17px] font-semibold leading-7 tracking-[-0.015em] text-[var(--ink)] md:text-[18px]">
+                {game.summaryRu}
+              </p>
+            )}
+            <p className={`whitespace-pre-line text-[15px] leading-7 text-[var(--text-muted)] md:text-base ${game.summaryRu ? "mt-3" : "mt-4"}`}>
               {game.description.replaceAll(" _ ", "\n").replaceAll("...", "…")}
             </p>
             {game.psStoreUrl && (

@@ -374,6 +374,45 @@ export async function upsertProductDetail(
   `;
 }
 
+export async function upsertAiDescription(
+  region: PsnRegion,
+  psnProductId: string,
+  fields: { translationRu: string | null; summaryRu: string },
+): Promise<void> {
+  await sql`
+    UPDATE psn_regional_products SET
+      description_ai_ru_text    = COALESCE(${fields.translationRu}, description_ai_ru_text),
+      description_ai_summary_ru = ${fields.summaryRu}
+    WHERE region = ${region} AND psn_product_id = ${psnProductId}
+  `;
+}
+
+export async function listProductsNeedingAiEnrichment(
+  region: PsnRegion,
+  limit = 200,
+): Promise<Array<{
+  psnProductId: string;
+  title: string;
+  descriptionOriginalText: string | null;
+  descriptionRuText: string | null;
+}>> {
+  const rows = await sql`
+    SELECT psn_product_id, title, description_original_text, description_ru_text
+    FROM psn_regional_products
+    WHERE region = ${region}
+      AND description_ai_summary_ru IS NULL
+      AND description_original_text IS NOT NULL
+    ORDER BY last_seen_at DESC
+    LIMIT ${limit}
+  `;
+  return rows.map((r) => ({
+    psnProductId: r.psn_product_id as string,
+    title: r.title as string,
+    descriptionOriginalText: r.description_original_text as string | null,
+    descriptionRuText: r.description_ru_text as string | null,
+  }));
+}
+
 // Products that still need detail enrichment (no description or rating yet).
 export async function listProductsNeedingEnrichment(
   region: PsnRegion,

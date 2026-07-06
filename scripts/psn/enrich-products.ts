@@ -1,109 +1,196 @@
 /**
- * Enrich already-imported PSN products with detail-page data:
- *   description, publisher, release date, genres, rating, voice/subtitle languages,
- *   and Russian description (best-effort from /ru-ua/ with the same product ID).
+ * Enrich already-imported PSN products in two passes:
+ *
+ *  1. PSN pass  — fetches individual product pages (en-tr + ru-ua) to get
+ *     description, publisher, release date, genres, rating, voice/subtitle
+ *     languages, and screenshots.
+ *
+ *  2. AI pass   — calls OpenAI GPT-4o-mini for products that still lack a
+ *     Russian description or have no short summary. Produces:
+ *       • description_ai_ru_text    – full Russian translation (when ru-ua unavailable)
+ *       • description_ai_summary_ru – 1-2 sentence storefront summary in Russian
  *
  * Usage:
- *   DATABASE_URL=... npx tsx scripts/psn/enrich-products.ts [--region IN|TR|ALL]
+ *   DATABASE_URL=... OPENAI_API_KEY=... npx tsx scripts/psn/enrich-products.ts
+ *   DATABASE_URL=... npx tsx scripts/psn/enrich-products.ts --phase=psn
+ *   DATABASE_URL=... OPENAI_API_KEY=... npx tsx scripts/psn/enrich-products.ts --phase=ai
  *
- * Throttle: ~3 s per product (one page load per product, +1 optional RU page).
- * 170 products ≈ 15-20 min total.
+ * Flags:
+ *   --phase=psn|ai|all   default: all
+ *   --region=TR|UA|ALL   default: ALL (currently only TR is scraped)
+ *   --limit=N            default: 200
  */
 
+import OpenAI from "openai";
 import { PsnBrowserClient } from "../../lib/psn/browser-client";
 import { parseProductFromWCA } from "../../lib/psn/parser";
 import {
   listProductsNeedingEnrichment,
+  listProductsNeedingAiEnrichment,
   upsertProductDetail,
+  upsertAiDescription,
 } from "../../lib/psn/db";
 import type { PsnRegion } from "../../lib/psn/types";
 
+// ─── CLI args ─────────────────────────────────────────────────────────────────
+
 const args = process.argv.slice(2);
-const regionArg = args.find((a) => a.startsWith("--region="))?.split("=")[1]
-  ?? args[args.indexOf("--region") + 1]
-  ?? "ALL";
-const limitArg = args.find((a) => a.startsWith("--limit="))?.split("=")[1];
-const limit = limitArg ? Number(limitArg) : 200;
+const arg = (name: string) =>
+  args.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ??
+  args[args.indexOf(`--${name}`) + 1] ??
+  undefined;
+
+const phase  = (arg("phase")  ?? "all") as "psn" | "ai" | "all";
+const regionArg = arg("region") ?? "ALL";
+const limit  = Number(arg("limit") ?? "200");
 
 const REGIONS: PsnRegion[] = regionArg === "ALL" ? ["TR"] : [regionArg as PsnRegion];
 
-// Category URL used only for the Akamai session challenge (any category works)
 const CATEGORY_URL_FOR_SESSION: Record<PsnRegion, string> = {
   TR: "https://store.playstation.com/en-tr/category/3f772501-f6f8-49b7-abac-874a88ca4897/1",
   UA: "https://store.playstation.com/ru-ua/category/44d8bb20-653e-431e-8ad9-4f981f71cf23/1",
 };
+const LOCALE: Record<PsnRegion, string> = { TR: "en-tr", UA: "ru-ua" };
 
-// Locale → store base for building product URL in that locale
-const LOCALE: Record<PsnRegion, string> = {
-  TR: "en-tr",
-  UA: "ru-ua",
-};
-
-function productUrl(region: PsnRegion, psnProductId: string): string {
-  return `https://store.playstation.com/${LOCALE[region]}/product/${psnProductId}`;
+function productUrl(region: PsnRegion, id: string) {
+  return `https://store.playstation.com/${LOCALE[region]}/product/${id}`;
+}
+function ruProductUrl(id: string) {
+  return `https://store.playstation.com/ru-ua/product/${id}`;
 }
 
-function ruProductUrl(psnProductId: string): string {
-  return `https://store.playstation.com/ru-ua/product/${psnProductId}`;
-}
+// ─── Pass 1: PSN browser scraping ─────────────────────────────────────────────
 
-let totalSaved = 0;
-let totalFailed = 0;
+if (phase === "psn" || phase === "all") {
+  for (const region of REGIONS) {
+    console.log(`\n${"═".repeat(60)}`);
+    console.log(`[PSN] Enriching ${region} products…`);
 
-for (const region of REGIONS) {
-  console.log(`\n${"═".repeat(60)}`);
-  console.log(`Enriching ${region} products…`);
+    const products = await listProductsNeedingEnrichment(region, limit);
+    console.log(`  ${products.length} products need PSN enrichment`);
+    if (products.length === 0) continue;
 
-  const products = await listProductsNeedingEnrichment(region, limit);
-  console.log(`  ${products.length} products need enrichment`);
+    const browser = new PsnBrowserClient();
+    await browser.launch();
+    await browser.initSession(CATEGORY_URL_FOR_SESSION[region]);
+    console.log("  Browser session established (Akamai OK)");
 
-  if (products.length === 0) continue;
+    let saved = 0, failed = 0;
 
-  const browser = new PsnBrowserClient();
-  await browser.launch();
-
-  // Pass Akamai challenge via category page (stronger validation than product page).
-  // fetchProductDetail() uses browser HTTP stack after this, no new pages per product.
-  await browser.initSession(CATEGORY_URL_FOR_SESSION[region]);
-  console.log("  Browser session established (Akamai OK)");
-
-  let saved = 0;
-  let failed = 0;
-
-  for (const { psnProductId } of products) {
-    const url = productUrl(region, psnProductId);
-    process.stdout.write(`  ${psnProductId.slice(0, 40)} … `);
-
-    try {
-      const wca = await browser.fetchProductDetail(url);
-
-      // Best-effort: try the same product ID on /ru-ua/ for Russian description.
-      let ruWca = null;
+    for (const { psnProductId } of products) {
+      process.stdout.write(`  ${psnProductId.slice(0, 40)} … `);
       try {
-        ruWca = await browser.fetchProductDetail(ruProductUrl(psnProductId));
-      } catch {
-        // No RU equivalent — leave description_ru NULL.
+        const wca = await browser.fetchProductDetail(productUrl(region, psnProductId));
+
+        let ruWca = null;
+        try {
+          ruWca = await browser.fetchProductDetail(ruProductUrl(psnProductId));
+        } catch { /* no ru-ua equivalent */ }
+
+        const detail = parseProductFromWCA(wca, ruWca);
+        await upsertProductDetail(region, psnProductId, detail);
+
+        const hasRu = !!detail.longDescriptionRuText;
+        const genre  = detail.genres[0] ?? "—";
+        const rating = detail.rating != null ? detail.rating.toFixed(2) : "—";
+        console.log(`✓  ${genre} | ★${rating} | RU=${hasRu ? "✓" : "✗"}`);
+        saved++;
+      } catch (err) {
+        console.log(`✗  ${(err as Error).message.slice(0, 80)}`);
+        failed++;
       }
-
-      const detail = parseProductFromWCA(wca, ruWca);
-      await upsertProductDetail(region, psnProductId, detail);
-
-      const hasRu = !!detail.longDescriptionRuText;
-      const genre = detail.genres[0] ?? "—";
-      const rating = detail.rating != null ? detail.rating.toFixed(2) : "—";
-      console.log(`✓  ${genre} | ★${rating} | RU=${hasRu ? "✓" : "✗"}`);
-      saved++;
-    } catch (err) {
-      console.log(`✗  ${(err as Error).message.slice(0, 80)}`);
-      failed++;
     }
+
+    await browser.close();
+    console.log(`\n[PSN] ${region} done: ${saved} enriched, ${failed} failed`);
+  }
+}
+
+// ─── Pass 2: OpenAI translation + summary ────────────────────────────────────
+
+if (phase === "ai" || phase === "all") {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.log("\n[AI] Skipped — OPENAI_API_KEY not set");
+    process.exit(0);
   }
 
-  await browser.close();
-  totalSaved += saved;
-  totalFailed += failed;
-  console.log(`\n${region} done: ${saved} enriched, ${failed} failed`);
+  const openai = new OpenAI({ apiKey });
+
+  for (const region of REGIONS) {
+    console.log(`\n${"═".repeat(60)}`);
+    console.log(`[AI] Processing ${region} products…`);
+
+    const products = await listProductsNeedingAiEnrichment(region, limit);
+    console.log(`  ${products.length} products need AI enrichment`);
+    if (products.length === 0) continue;
+
+    let saved = 0, failed = 0;
+
+    for (const { psnProductId, title, descriptionOriginalText, descriptionRuText } of products) {
+      process.stdout.write(`  ${title.slice(0, 48).padEnd(48)} … `);
+
+      try {
+        const needsTranslation = !descriptionRuText;
+        const sourceText = descriptionRuText ?? descriptionOriginalText ?? "";
+
+        let systemPrompt: string;
+        let userPrompt: string;
+
+        if (needsTranslation) {
+          systemPrompt =
+            "You are a game catalog assistant for a PlayStation Store pricing site targeting Russian-speaking users. " +
+            "Respond with valid JSON only, no markdown.";
+          userPrompt =
+            `Game title: ${title}\n\nEnglish description:\n${descriptionOriginalText}\n\n` +
+            `Return JSON:\n` +
+            `{\n  "translation": "Full Russian translation of the description",\n` +
+            `  "summary": "1-2 sentence summary in Russian that helps a customer decide whether to buy"\n}`;
+        } else {
+          systemPrompt =
+            "You are a game catalog assistant for a PlayStation Store pricing site targeting Russian-speaking users. " +
+            "Respond with valid JSON only, no markdown.";
+          userPrompt =
+            `Game title: ${title}\n\nRussian description:\n${sourceText}\n\n` +
+            `Return JSON:\n` +
+            `{\n  "summary": "1-2 sentence summary in Russian that helps a customer decide whether to buy"\n}`;
+        }
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user",   content: userPrompt },
+          ],
+          max_tokens: needsTranslation ? 2000 : 300,
+          temperature: 0.3,
+        });
+
+        const raw = response.choices[0]?.message?.content ?? "{}";
+        const parsed = JSON.parse(raw) as {
+          translation?: string;
+          summary?: string;
+        };
+
+        if (!parsed.summary) throw new Error("GPT returned no summary");
+
+        await upsertAiDescription(region, psnProductId, {
+          translationRu: parsed.translation ?? null,
+          summaryRu: parsed.summary,
+        });
+
+        const tag = needsTranslation ? "translated+summary" : "summary";
+        console.log(`✓  ${tag}`);
+        saved++;
+      } catch (err) {
+        console.log(`✗  ${(err as Error).message.slice(0, 80)}`);
+        failed++;
+      }
+    }
+
+    console.log(`\n[AI] ${region} done: ${saved} enriched, ${failed} failed`);
+  }
 }
 
-console.log(`\nAll done: ${totalSaved} enriched, ${totalFailed} failed`);
+console.log("\nAll done.");
 process.exit(0);

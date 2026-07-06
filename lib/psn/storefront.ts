@@ -24,6 +24,8 @@ type ProductRow = {
   genres: string[];
   publisher: string | null;
   description_ru_text: string | null;
+  description_ai_ru_text: string | null;
+  description_ai_summary_ru: string | null;
   description_original_text: string | null;
   sales_rank: number | null;
   sale_end_date: string | null;
@@ -72,7 +74,8 @@ function rowToGame(region: PsnRegion, r: ProductRow): Game {
     image: r.image_url ?? "",
     price,
     originalPrice,
-    description: r.description_ru_text ?? r.description_original_text ?? "",
+    description: r.description_ru_text ?? r.description_ai_ru_text ?? r.description_original_text ?? "",
+    summaryRu: r.description_ai_summary_ru ?? null,
     platform: (r.platforms ?? []).join(", ") || "PS5",
     russianVoice: hasLanguage(voiceLanguages, "ru"),
     russianSubtitles: hasLanguage(subtitleLanguages, "ru"),
@@ -110,6 +113,8 @@ function saleProductSelect(region: PsnRegion) {
       p.genres,
       p.publisher,
       p.description_ru_text,
+      p.description_ai_ru_text,
+      p.description_ai_summary_ru,
       p.description_original_text,
       p.sales_rank,
       p.sale_end_date,
@@ -166,6 +171,8 @@ async function getAllProductsForRegion(region: PsnRegion): Promise<ProductRow[]>
       p.genres,
       p.publisher,
       p.description_ru_text,
+      p.description_ai_ru_text,
+      p.description_ai_summary_ru,
       p.description_original_text,
       p.sales_rank,
       p.sale_end_date,
@@ -261,6 +268,8 @@ export async function getCollectionsForRegion(
       p.genres,
       p.publisher,
       p.description_ru_text,
+      p.description_ai_ru_text,
+      p.description_ai_summary_ru,
       p.description_original_text,
       p.sales_rank,
       p.sale_end_date,
@@ -334,6 +343,8 @@ export async function getFeaturedPromoForRegion(
       p.genres,
       p.publisher,
       p.description_ru_text,
+      p.description_ai_ru_text,
+      p.description_ai_summary_ru,
       p.description_original_text,
       p.sales_rank,
       p.sale_end_date,

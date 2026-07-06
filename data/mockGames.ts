@@ -28,6 +28,7 @@ export type Game = {
   ratingsCount?: number | null;
   salesRank?: number | null;
   saleEndDate?: string | null;
+  summaryRu?: string | null;
 };
 
 export const games: Game[] = [
