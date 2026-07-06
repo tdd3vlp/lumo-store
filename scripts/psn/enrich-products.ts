@@ -21,6 +21,7 @@
  *   --limit=N            default: 200
  */
 
+import "../env";
 import { PsnBrowserClient } from "../../lib/psn/browser-client";
 import { parseProductFromWCA } from "../../lib/psn/parser";
 import {
