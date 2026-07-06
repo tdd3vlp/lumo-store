@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import { ALLOWED_STORE_PREFIXES, WELL_KNOWN_COLLECTIONS } from "@/lib/psn/types";
 import type { PsnRegion } from "@/lib/psn/types";
 
-type PresetKey = "new_releases" | "preorders";
+type PresetKey = "new_releases" | "preorders" | "collections";
 
 type Job = {
   id: string;
@@ -55,6 +55,16 @@ const EVENT_COLOR: Record<string, string> = {
   done: "text-[#91ad23]",
 };
 
+const PRESETS: { key: PresetKey; label: string; fixedCollection: string | null }[] = [
+  { key: "new_releases", label: "Новинки",    fixedCollection: WELL_KNOWN_COLLECTIONS.NEW_RELEASES },
+  { key: "preorders",    label: "Предзаказы", fixedCollection: WELL_KNOWN_COLLECTIONS.PREORDERS },
+  { key: "collections",  label: "Коллекции",  fixedCollection: null },
+];
+
+const lsUrlKey  = (key: PresetKey) => `psn_preset_${key}_url`;
+const lsPgsKey  = (key: PresetKey) => `psn_preset_${key}_pages`;
+const lsNameKey = (key: PresetKey) => `psn_preset_${key}_name`;
+
 export default function PsnImportPage() {
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -72,7 +82,6 @@ export default function PsnImportPage() {
   const [commitState, setCommitState] = useState<CommitState | null>(null);
   const [committing, setCommitting] = useState(false);
   const [commitError, setCommitError] = useState<string | null>(null);
-  // Maps jobId → preset collectionName so the commit modal can pre-fill it
   const [presetCollectionNames, setPresetCollectionNames] = useState<Record<string, string>>({});
 
   // SSE log
@@ -81,25 +90,35 @@ export default function PsnImportPage() {
   const logRef = useRef<HTMLDivElement | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
-  // Quick import presets (URL + pages stored in localStorage)
-  const PRESETS: { key: PresetKey; label: string; collectionName: string }[] = [
-    { key: "new_releases", label: "Новинки TR",    collectionName: WELL_KNOWN_COLLECTIONS.NEW_RELEASES },
-    { key: "preorders",    label: "Предзаказы TR", collectionName: WELL_KNOWN_COLLECTIONS.PREORDERS },
-  ];
-  const lsUrlKey  = (key: PresetKey) => `psn_preset_${key}_url`;
-  const lsPgsKey  = (key: PresetKey) => `psn_preset_${key}_pages`;
-  const [presetUrls,  setPresetUrls]  = useState<Record<PresetKey, string>>({ new_releases: "", preorders: "" });
-  const [presetPages, setPresetPages] = useState<Record<PresetKey, number>>({ new_releases: 3,  preorders: 5  });
+  // Preset state (URL, pages, custom name)
+  const [presetUrls,  setPresetUrls]  = useState<Record<PresetKey, string>>({
+    new_releases: "", preorders: "", collections: "",
+  });
+  const [presetPages, setPresetPages] = useState<Record<PresetKey, number>>({
+    new_releases: 3, preorders: 5, collections: 3,
+  });
+  const [presetNames, setPresetNames] = useState<Record<PresetKey, string>>({
+    new_releases: "", preorders: "", collections: "",
+  });
 
   useEffect(() => {
+    const all: PresetKey[] = ["new_releases", "preorders", "collections"];
     setPresetUrls({
       new_releases: localStorage.getItem(lsUrlKey("new_releases")) ?? "",
       preorders:    localStorage.getItem(lsUrlKey("preorders"))    ?? "",
+      collections:  localStorage.getItem(lsUrlKey("collections"))  ?? "",
     });
     setPresetPages({
       new_releases: Number(localStorage.getItem(lsPgsKey("new_releases")) ?? "3"),
       preorders:    Number(localStorage.getItem(lsPgsKey("preorders"))    ?? "5"),
+      collections:  Number(localStorage.getItem(lsPgsKey("collections"))  ?? "3"),
     });
+    setPresetNames(
+      all.reduce((acc, key) => {
+        acc[key] = localStorage.getItem(lsNameKey(key)) ?? "";
+        return acc;
+      }, {} as Record<PresetKey, string>),
+    );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -108,7 +127,6 @@ export default function PsnImportPage() {
     UA: ALLOWED_STORE_PREFIXES[1] + "category/44d8bb20-653e-431e-8ad9-4f981f71cf23/1",
   };
 
-  // Auth check
   useEffect(() => {
     fetch("/api/auth/session", { cache: "no-store" })
       .then((r) => r.json())
@@ -116,7 +134,6 @@ export default function PsnImportPage() {
       .catch(() => setAuthed(false));
   }, []);
 
-  // Load job list
   const loadJobs = () => {
     fetch("/api/admin/psn-import")
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
@@ -128,12 +145,10 @@ export default function PsnImportPage() {
     if (authed) loadJobs();
   }, [authed]);
 
-  // Auto-scroll log
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [eventLog]);
 
-  // Start SSE stream for a job
   const connectToJob = (jobId: string) => {
     esRef.current?.close();
     setActiveJobId(jobId);
@@ -154,16 +169,11 @@ export default function PsnImportPage() {
       ]);
     };
 
-    // Log events never close the stream — even a "warning"/"error" is mid-job.
     for (const evt of ["info", "page", "product", "warning", "error", "done"] as const) {
       es.addEventListener(evt, (ev) => handle(ev as MessageEvent, evt));
     }
 
-    // Only terminal signals close the stream and refresh the job list.
-    const finish = () => {
-      es.close();
-      loadJobs();
-    };
+    const finish = () => { es.close(); loadJobs(); };
     es.addEventListener("end", finish);
     es.addEventListener("timeout", finish);
     es.onerror = finish;
@@ -173,7 +183,6 @@ export default function PsnImportPage() {
     e.preventDefault();
     setFormError(null);
     setSubmitting(true);
-
     try {
       const res = await fetch("/api/admin/psn-import", {
         method: "POST",
@@ -181,10 +190,7 @@ export default function PsnImportPage() {
         body: JSON.stringify({ region, categoryUrl, pageFrom, pageTo, dryRun }),
       });
       const data = (await res.json()) as { jobId?: string; error?: string };
-      if (!res.ok) {
-        setFormError(data.error ?? "Unknown error");
-        return;
-      }
+      if (!res.ok) { setFormError(data.error ?? "Unknown error"); return; }
       loadJobs();
       connectToJob(data.jobId!);
     } catch (err) {
@@ -194,14 +200,22 @@ export default function PsnImportPage() {
     }
   };
 
-  const handlePresetSubmit = async (key: PresetKey, collectionName: string) => {
+  const handlePresetSubmit = async (key: PresetKey) => {
     const url = presetUrls[key];
     if (!url) return;
+    const preset = PRESETS.find((p) => p.key === key)!;
+    const collectionName = preset.fixedCollection ?? presetNames[key];
     try {
       const res = await fetch("/api/admin/psn-import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ region: "TR", categoryUrl: url, pageFrom: 1, pageTo: presetPages[key], dryRun: true }),
+        body: JSON.stringify({
+          region: "TR",
+          categoryUrl: url,
+          pageFrom: 1,
+          pageTo: presetPages[key],
+          dryRun: true,
+        }),
       });
       const data = (await res.json()) as { jobId?: string; error?: string };
       if (!res.ok || !data.jobId) return;
@@ -228,10 +242,7 @@ export default function PsnImportPage() {
         }),
       });
       const data = (await res.json()) as { jobId?: string; error?: string };
-      if (!res.ok) {
-        setCommitError(data.error ?? "Unknown error");
-        return;
-      }
+      if (!res.ok) { setCommitError(data.error ?? "Unknown error"); return; }
       setCommitState(null);
       loadJobs();
       connectToJob(data.jobId!);
@@ -258,41 +269,38 @@ export default function PsnImportPage() {
     );
   }
 
+  const inputCls = "w-full rounded-[10px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--ink)]";
+  const labelCls = "mb-1 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]";
+
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-4xl px-4 pb-36 pt-6 md:px-6">
+      <main className="mx-auto max-w-6xl px-4 pb-36 pt-6 md:px-6">
         <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
           Администрирование
         </p>
         <h1 className="font-[family-name:var(--font-unbounded)] text-3xl font-bold tracking-[-0.04em] text-[var(--ink)] md:text-4xl">
-          Импорт PS Store
+          Parse
         </h1>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">
-          {/* Form */}
+        {/* 4 equal blocks */}
+        <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+          {/* Block 1: New import */}
           <form
             onSubmit={handleSubmit}
-            className="rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-6"
+            className="rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5"
           >
-            <h2 className="mb-5 text-lg font-bold text-[var(--ink)]">
-              Новый импорт
-            </h2>
-
-            <div className="space-y-4">
+            <p className="mb-4 text-sm font-bold text-[var(--ink)]">Новый импорт</p>
+            <div className="space-y-3">
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                  Регион
-                </span>
+                <span className={labelCls}>Регион</span>
                 <div className="flex gap-2">
                   {(["TR", "UA"] as const).map((r) => (
                     <button
                       key={r}
                       type="button"
-                      onClick={() => {
-                        setRegion(r);
-                        setCategoryUrl("");
-                      }}
+                      onClick={() => { setRegion(r); setCategoryUrl(""); }}
                       className={`rounded-[10px] px-4 py-2 text-sm font-bold transition ${
                         region === r
                           ? "bg-[var(--ink)] text-[var(--signal)]"
@@ -306,67 +314,53 @@ export default function PsnImportPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                  URL категории
-                </span>
+                <span className={labelCls}>URL категории</span>
                 <input
                   type="url"
                   required
                   value={categoryUrl}
                   onChange={(e) => setCategoryUrl(e.target.value)}
                   placeholder={LOCALE_EXAMPLE[region]}
-                  className="w-full rounded-[12px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--ink)]"
+                  className={inputCls}
                 />
-                <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  Должен начинаться с {ALLOWED_STORE_PREFIXES.find((p) => p.includes(region === "TR" ? "en-tr" : "ru-ua"))}
-                </p>
               </label>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <label className="flex-1">
-                  <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                    Страница с
-                  </span>
+                  <span className={labelCls}>С</span>
                   <input
                     type="number"
                     min={1}
                     value={pageFrom}
                     onChange={(e) => setPageFrom(Number(e.target.value))}
-                    className="w-full rounded-[12px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+                    className={inputCls}
                   />
                 </label>
                 <label className="flex-1">
-                  <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                    по
-                  </span>
+                  <span className={labelCls}>По</span>
                   <input
                     type="number"
                     min={1}
                     max={100}
                     value={pageTo}
                     onChange={(e) => setPageTo(Number(e.target.value))}
-                    className="w-full rounded-[12px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+                    className={inputCls}
                   />
                 </label>
               </div>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-[12px] border border-[var(--line-strong)] bg-[var(--paper)] px-4 py-3">
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2.5">
                 <input
                   type="checkbox"
                   checked={dryRun}
                   onChange={(e) => setDryRun(e.target.checked)}
                   className="h-4 w-4 accent-[var(--signal)]"
                 />
-                <div>
-                  <p className="text-sm font-bold text-[var(--ink)]">Dry-run</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Парсит страницы, но не записывает в БД
-                  </p>
-                </div>
+                <span className="text-sm font-bold text-[var(--ink)]">Dry-run</span>
               </label>
 
               {formError && (
-                <p className="rounded-[10px] border border-[var(--coral)]/30 bg-[var(--coral)]/10 px-3 py-2.5 text-sm text-[var(--coral)]">
+                <p className="rounded-[10px] border border-[var(--coral)]/30 bg-[var(--coral)]/10 px-3 py-2 text-sm text-[var(--coral)]">
                   {formError}
                 </p>
               )}
@@ -374,40 +368,108 @@ export default function PsnImportPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-[12px] bg-[var(--signal)] py-3 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-50"
+                className="w-full rounded-[10px] bg-[var(--signal)] py-2.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-50"
               >
-                {submitting ? "Создаём задачу…" : dryRun ? "Запустить dry-run" : "Запустить импорт"}
+                {submitting ? "Запуск…" : dryRun ? "Dry-run" : "Import"}
               </button>
             </div>
           </form>
 
-          {/* SSE log */}
-          <div className="rounded-[20px] border border-[var(--line-strong)] bg-[var(--ink)] overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/12 px-5 py-3.5">
-              <p className="text-sm font-bold text-white">
-                {activeJobId ? `Лог задачи` : "Лог"}
-              </p>
-              {activeJobId && (
-                <code className="text-[10px] text-white/40 font-mono">
-                  {activeJobId.slice(0, 8)}…
-                </code>
-              )}
-            </div>
+          {/* Blocks 2-4: Presets */}
+          {PRESETS.map(({ key, label, fixedCollection }) => (
             <div
-              ref={logRef}
-              className="h-[340px] overflow-y-auto p-4 font-mono text-[11px] leading-[1.6] [scrollbar-width:thin]"
+              key={key}
+              className="rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5"
             >
-              {eventLog.length === 0 ? (
-                <p className="text-white/30">Запустите задачу — лог появится здесь.</p>
-              ) : (
-                eventLog.map((ev) => (
-                  <div key={ev.id} className={EVENT_COLOR[ev.type] ?? "text-white/60"}>
-                    <span className="text-white/25">[{ev.type.toUpperCase()}]</span>{" "}
-                    {ev.message}
-                  </div>
-                ))
-              )}
+              <p className="mb-4 text-sm font-bold text-[var(--ink)]">{label}</p>
+              <div className="space-y-3">
+                <label className="block">
+                  <span className={labelCls}>URL категории PSN TR</span>
+                  <input
+                    type="url"
+                    value={presetUrls[key]}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setPresetUrls((prev) => ({ ...prev, [key]: v }));
+                      localStorage.setItem(lsUrlKey(key), v);
+                    }}
+                    placeholder={LOCALE_EXAMPLE["TR"]}
+                    className={inputCls}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className={labelCls}>Страниц</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={presetPages[key]}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setPresetPages((prev) => ({ ...prev, [key]: v }));
+                      localStorage.setItem(lsPgsKey(key), String(v));
+                    }}
+                    className={inputCls}
+                  />
+                </label>
+
+                {fixedCollection === null && (
+                  <label className="block">
+                    <span className={labelCls}>Название коллекции</span>
+                    <input
+                      type="text"
+                      value={presetNames[key]}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setPresetNames((prev) => ({ ...prev, [key]: v }));
+                        localStorage.setItem(lsNameKey(key), v);
+                      }}
+                      placeholder="Лучшие игры июля"
+                      className={inputCls}
+                    />
+                  </label>
+                )}
+
+                <button
+                  type="button"
+                  disabled={!presetUrls[key]}
+                  onClick={() => handlePresetSubmit(key)}
+                  className="w-full rounded-[10px] bg-[var(--signal)] py-2.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-40"
+                >
+                  Dry-run
+                </button>
+              </div>
             </div>
+          ))}
+        </div>
+
+        {/* SSE log — full width */}
+        <div className="mt-6 overflow-hidden rounded-[20px] border border-[var(--line-strong)] bg-[var(--ink)]">
+          <div className="flex items-center justify-between border-b border-white/12 px-5 py-3.5">
+            <p className="text-sm font-bold text-white">
+              {activeJobId ? "Лог задачи" : "Лог"}
+            </p>
+            {activeJobId && (
+              <code className="font-mono text-[10px] text-white/40">
+                {activeJobId.slice(0, 8)}…
+              </code>
+            )}
+          </div>
+          <div
+            ref={logRef}
+            className="h-[260px] overflow-y-auto p-4 font-mono text-[11px] leading-[1.6] [scrollbar-width:thin]"
+          >
+            {eventLog.length === 0 ? (
+              <p className="text-white/30">Запустите задачу — лог появится здесь.</p>
+            ) : (
+              eventLog.map((ev) => (
+                <div key={ev.id} className={EVENT_COLOR[ev.type] ?? "text-white/60"}>
+                  <span className="text-white/25">[{ev.type.toUpperCase()}]</span>{" "}
+                  {ev.message}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -421,7 +483,6 @@ export default function PsnImportPage() {
               <p className="mb-5 text-xs text-[var(--text-muted)]">
                 Регион: {commitState.region} · job {commitState.stagedJobId.slice(0, 8)}…
               </p>
-
               <div className="space-y-4">
                 <label className="block">
                   <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
@@ -434,7 +495,6 @@ export default function PsnImportPage() {
                     className="w-full rounded-[12px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
                   />
                 </label>
-
                 <label className="block">
                   <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
                     Название коллекции (необязательно)
@@ -447,13 +507,11 @@ export default function PsnImportPage() {
                     className="w-full rounded-[12px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--ink)]"
                   />
                 </label>
-
                 {commitError && (
                   <p className="rounded-[10px] border border-[var(--coral)]/30 bg-[var(--coral)]/10 px-3 py-2.5 text-sm text-[var(--coral)]">
                     {commitError}
                   </p>
                 )}
-
                 <div className="flex gap-3">
                   <button
                     type="button"
@@ -476,64 +534,6 @@ export default function PsnImportPage() {
           </div>
         )}
 
-        {/* Quick import presets */}
-        <section className="mt-8">
-          <h2 className="mb-4 text-xl font-bold text-[var(--ink)]">Быстрые импорты</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {PRESETS.map(({ key, label, collectionName }) => (
-              <div
-                key={key}
-                className="rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5"
-              >
-                <p className="mb-3 text-sm font-bold text-[var(--ink)]">{label}</p>
-                <div className="space-y-3">
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                      URL категории PSN TR
-                    </span>
-                    <input
-                      type="url"
-                      value={presetUrls[key]}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setPresetUrls((prev) => ({ ...prev, [key]: v }));
-                        localStorage.setItem(lsUrlKey(key), v);
-                      }}
-                      placeholder={LOCALE_EXAMPLE["TR"]}
-                      className="w-full rounded-[10px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--ink)]"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                      Страниц
-                    </span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={presetPages[key]}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        setPresetPages((prev) => ({ ...prev, [key]: v }));
-                        localStorage.setItem(lsPgsKey(key), String(v));
-                      }}
-                      className="w-full rounded-[10px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    disabled={!presetUrls[key] || submitting}
-                    onClick={() => handlePresetSubmit(key, collectionName)}
-                    className="w-full rounded-[10px] bg-[var(--signal)] py-2.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-40"
-                  >
-                    Dry-run → {collectionName}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* Job history */}
         <section className="mt-8">
           <div className="mb-4 flex items-center justify-between">
@@ -550,10 +550,7 @@ export default function PsnImportPage() {
           {jobs === null ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-16 animate-pulse rounded-[14px] bg-[var(--line)]"
-                />
+                <div key={i} className="h-16 animate-pulse rounded-[14px] bg-[var(--line)]" />
               ))}
             </div>
           ) : jobs.length === 0 ? (
@@ -561,10 +558,7 @@ export default function PsnImportPage() {
           ) : (
             <div className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
               {jobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="flex items-center gap-4 py-4"
-                >
+                <div key={job.id} className="flex items-center gap-4 py-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className={`font-black ${STATUS_COLOR[job.status] ?? ""}`}>
@@ -584,13 +578,11 @@ export default function PsnImportPage() {
                       {job.category_url}
                     </p>
                     {job.error_message && (
-                      <p className="mt-0.5 text-xs text-[var(--coral)]">
-                        {job.error_message}
-                      </p>
+                      <p className="mt-0.5 text-xs text-[var(--coral)]">{job.error_message}</p>
                     )}
                   </div>
                   <div className="shrink-0 text-right text-xs text-[var(--text-muted)]">
-                    <p>{job.products_upserted} / {job.products_seen} товаров</p>
+                    <p>{job.products_upserted} / {job.products_seen}</p>
                     <p>{job.pages_fetched} стр.</p>
                   </div>
                   {job.dry_run && job.status === "done" && job.has_staged && (
@@ -604,7 +596,7 @@ export default function PsnImportPage() {
                       })}
                       className="shrink-0 rounded-[10px] bg-[var(--signal)] px-3 py-1.5 text-xs font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)]"
                     >
-                      Закоммитить
+                      Коммит
                     </button>
                   )}
                   <button

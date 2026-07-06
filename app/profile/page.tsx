@@ -181,13 +181,13 @@ export default async function ProfilePage() {
                 href="/admin/pricing"
                 className="inline-flex rounded-[13px] bg-[var(--signal)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)]"
               >
-                Курсы регионов
+                Изменить курс
               </Link>
               <Link
                 href="/admin/psn-import"
                 className="inline-flex rounded-[13px] border border-[var(--line-strong)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
               >
-                Импорт PS Store
+                Parse
               </Link>
             </div>
           </section>
