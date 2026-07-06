@@ -18,6 +18,7 @@ type Props = {
   englishVoice?: boolean;
   englishSubtitles?: boolean;
   region?: StoreRegion;
+  saleEndDate?: string | null;
 };
 
 function formatPrice(value: number | null | undefined, rate: number): string {
@@ -102,6 +103,12 @@ function getNumericPrice(value: string | number | null) {
   return null;
 }
 
+function formatSaleEnd(dateStr: string): string {
+  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" })
+    .format(new Date(dateStr))
+    .replace(".", "");
+}
+
 export default function GameCard({
   id,
   title,
@@ -113,6 +120,7 @@ export default function GameCard({
   englishVoice,
   englishSubtitles,
   region = "TR",
+  saleEndDate,
 }: Props) {
   const favorites = useStore((state) => state.favorites);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
@@ -279,6 +287,11 @@ export default function GameCard({
             </>
           )}
         </div>
+        {hasDiscount && saleEndDate && (
+          <p className="mt-1.5 text-[11px] font-semibold text-[var(--coral)]">
+            Скидка до {formatSaleEnd(saleEndDate)}
+          </p>
+        )}
 
       </div>
     </article>

@@ -17,6 +17,7 @@ type RowGame = {
   englishVoice?: boolean;
   englishSubtitles?: boolean;
   region?: StoreRegion;
+  saleEndDate?: string | null;
 };
 
 type Props = {
@@ -109,6 +110,7 @@ export default function GameRowSection({
               gameLanguageSupport[game.id]?.englishSubtitles
             }
             region={game.region}
+            saleEndDate={game.saleEndDate}
           />
         ))}
       </div>

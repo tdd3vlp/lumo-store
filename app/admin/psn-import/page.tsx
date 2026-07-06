@@ -283,16 +283,16 @@ export default function PsnImportPage() {
           Parse
         </h1>
 
-        {/* 4 equal blocks */}
-        <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* 4 blocks, 2 per row, equal height */}
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
 
           {/* Block 1: New import */}
           <form
             onSubmit={handleSubmit}
-            className="rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5"
+            className="flex flex-col rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5"
           >
             <p className="mb-4 text-sm font-bold text-[var(--ink)]">Новый импорт</p>
-            <div className="space-y-3">
+            <div className="flex flex-1 flex-col gap-3">
               <label className="block">
                 <span className={labelCls}>Регион</span>
                 <div className="flex gap-2">
@@ -368,7 +368,7 @@ export default function PsnImportPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-[10px] bg-[var(--signal)] py-2.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-50"
+                className="mt-auto w-full rounded-[10px] bg-[var(--signal)] py-2.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-50"
               >
                 {submitting ? "Запуск…" : dryRun ? "Dry-run" : "Import"}
               </button>
@@ -379,10 +379,10 @@ export default function PsnImportPage() {
           {PRESETS.map(({ key, label, fixedCollection }) => (
             <div
               key={key}
-              className="rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5"
+              className="flex flex-col rounded-[20px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-5"
             >
               <p className="mb-4 text-sm font-bold text-[var(--ink)]">{label}</p>
-              <div className="space-y-3">
+              <div className="flex flex-1 flex-col gap-3">
                 <label className="block">
                   <span className={labelCls}>URL категории PSN TR</span>
                   <input
@@ -435,7 +435,7 @@ export default function PsnImportPage() {
                   type="button"
                   disabled={!presetUrls[key]}
                   onClick={() => handlePresetSubmit(key)}
-                  className="w-full rounded-[10px] bg-[var(--signal)] py-2.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-40"
+                  className="mt-auto w-full rounded-[10px] bg-[var(--signal)] py-2.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-40"
                 >
                   Dry-run
                 </button>
