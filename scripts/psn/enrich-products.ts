@@ -112,8 +112,7 @@ if (phase === "ai" || phase === "all") {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     console.log("\n[AI] Skipped — OPENAI_API_KEY not set");
-    process.exit(0);
-  }
+  } else {
 
   for (const region of REGIONS) {
     console.log(`\n${"═".repeat(60)}`);
@@ -184,7 +183,7 @@ if (phase === "ai" || phase === "all") {
 
     console.log(`\n[AI] ${region} done: ${saved} enriched, ${failed} failed`);
   }
+  }
 }
 
 console.log("\nAll done.");
-process.exit(0);
