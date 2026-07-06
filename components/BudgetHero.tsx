@@ -31,26 +31,6 @@ function SparkIcon({ className = "" }: { className?: string }) {
   );
 }
 
-function ArrowDownIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <path d="M12 4v15" strokeLinecap="round" />
-      <path
-        d="m6.5 13.5 5.5 5.5 5.5-5.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function GiftCardIcon() {
   return (
     <svg
@@ -108,12 +88,6 @@ export default function BudgetHero({ coverGames }: Props) {
       ),
     [denominations.length],
   );
-
-  const scrollToBudgetGames = () => {
-    document
-      .getElementById("budget-games")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   const formattedBudget = `${config.currencySymbol}${selectedBudget.toLocaleString(config.locale)}`;
 
@@ -178,22 +152,13 @@ export default function BudgetHero({ coverGames }: Props) {
                 ))}
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-[1.18fr_0.82fr]">
+              <div className="mt-5">
                 <button
                   type="button"
-                  className="flex min-h-14 items-center justify-center gap-2.5 rounded-xl border border-[var(--signal)] bg-[var(--signal)] px-4 text-sm font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 hover:bg-[var(--signal-strong)] active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:text-[15px]"
+                  className="flex w-full min-h-14 items-center justify-center gap-2.5 rounded-xl border border-[var(--signal)] bg-[var(--signal)] px-4 text-sm font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 hover:bg-[var(--signal-strong)] active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:text-[15px]"
                 >
                   <GiftCardIcon />
                   Купить карту на {formattedBudget}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={scrollToBudgetGames}
-                  className="flex min-h-14 items-center justify-center gap-2 rounded-xl border border-white/28 bg-white/[0.06] px-4 text-sm font-bold text-white transition hover:border-white/45 hover:bg-white/[0.11] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:text-[15px]"
-                >
-                  Подобрать
-                  <ArrowDownIcon />
                 </button>
               </div>
             </div>
