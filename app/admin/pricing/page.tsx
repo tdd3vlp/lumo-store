@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import Header from "@/components/Header";
 import AdminPricingRatesForm from "@/components/admin/AdminPricingRatesForm";
@@ -27,9 +28,20 @@ export default async function AdminPricingPage() {
     <>
       <Header />
       <main className="mx-auto max-w-3xl px-4 pb-36 pt-6 md:px-6">
-        <h1 className="font-[family-name:var(--font-unbounded)] text-3xl font-bold tracking-[-0.04em] text-[var(--ink)] md:text-4xl">
-          Курсы регионов
-        </h1>
+        <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          Администрирование
+        </p>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="font-[family-name:var(--font-unbounded)] text-3xl font-bold tracking-[-0.04em] text-[var(--ink)] md:text-4xl">
+            Курсы регионов
+          </h1>
+          <Link
+            href="/admin/psn-import"
+            className="mt-1 shrink-0 rounded-[10px] border border-[var(--line-strong)] px-3 py-1.5 text-xs font-bold text-[var(--text-muted)] transition hover:text-[var(--ink)]"
+          >
+            Импорт PS Store →
+          </Link>
+        </div>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">
           Управление курсами региональных валют к рублю. Значение — сколько
           рублей за одну единицу валюты региона.

@@ -117,60 +117,6 @@ input[type="number"] {
   opacity: 1;
 }
 
-.floating-budget-status {
-  position: fixed;
-  z-index: 45;
-  display: grid;
-  width: min(calc(100vw - 24px), 410px);
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  color: white;
-  background: rgba(18, 17, 22, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 16px;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(14px);
-  transition:
-    top 560ms cubic-bezier(0.22, 1, 0.36, 1),
-    left 560ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 560ms cubic-bezier(0.22, 1, 0.36, 1),
-    width 440ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms ease;
-}
-
-.floating-budget-status[data-positioned="false"] {
-  opacity: 0;
-}
-
-.floating-budget-status--hero {
-  transform: none;
-}
-
-.floating-budget-status--top {
-  top: 74px;
-  left: calc(100% - 12px);
-  transform: translateX(-100%);
-}
-
-.floating-budget-status--bottom {
-  top: calc(100dvh - max(16px, env(safe-area-inset-bottom)));
-  left: calc(100% - 12px);
-  transform: translate(-100%, -100%);
-}
-
-@media (min-width: 768px) {
-  .floating-budget-status--top {
-    top: 82px;
-    left: calc(100% - 24px);
-  }
-
-  .floating-budget-status--bottom {
-    left: calc(100% - 24px);
-  }
-}
-
 @supports not (color: color-mix(in srgb, white, black)) {
   .game-card {
     background: var(--card-surface);

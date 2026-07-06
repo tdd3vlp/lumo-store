@@ -4,17 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { games } from "@/data/mockGames";
+import { useRegionRate } from "@/lib/pricing/context";
+import { formatPriceAsRubles } from "@/lib/pricing/rates";
 import { useStore } from "@/store/useStore";
-
-function formatINR(value: number) {
-  return `₹${value.toLocaleString("en-IN")}`;
-}
 
 export default function FavoritesPage() {
   const favorites = useStore((state) => state.favorites);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
   const addToCart = useStore((state) => state.addToCart);
   const cart = useStore((state) => state.cart);
+  const tryRate = useRegionRate("TR");
 
   const favoriteGames = games.filter((game) => favorites.includes(game.id));
 
@@ -69,7 +68,7 @@ export default function FavoritesPage() {
                       </h3>
 
                       <div className="mt-2 text-base font-bold text-[#7c4dff]">
-                        {formatINR(game.price)}
+                        {game.price != null ? formatPriceAsRubles(game.price, tryRate) : "Цена при выходе"}
                       </div>
                     </div>
 

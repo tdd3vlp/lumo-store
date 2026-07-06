@@ -35,8 +35,8 @@ let skipped = 0;
 for (const row of rows) {
   const amountMajor = Number(row.denomination);
   const code = row.code?.trim();
-  const region = row.region?.trim() || "IN";
-  const currency = (row.currency?.trim() || "INR").slice(0, 3);
+  const region = row.region?.trim() || "TR";
+  const currency = (row.currency?.trim() || "TRY").slice(0, 3);
 
   if (!code || !Number.isFinite(amountMajor) || amountMajor <= 0) {
     skipped += 1;

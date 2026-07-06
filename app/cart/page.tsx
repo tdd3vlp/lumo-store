@@ -14,6 +14,8 @@ import {
   formatRubles,
   REGION_CONFIG,
 } from "@/lib/gift-cards/regions";
+import { useRegionRate } from "@/lib/pricing/context";
+import { formatPriceAsRubles } from "@/lib/pricing/rates";
 import { useStore, type StoreRegion } from "@/store/useStore";
 
 type CatalogDenomination = GiftCardOption & {
@@ -70,7 +72,7 @@ function GiftCardVisual({
           <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/50">
             Карта пополнения
           </p>
-          <p className="mt-1 text-xs font-bold">{config.name}</p>
+          <p className="mt-1 text-xs font-bold">{config.currency}</p>
         </div>
         <div>
           <p className="font-[family-name:var(--font-unbounded)] text-[20px] font-bold leading-none text-[var(--signal)]">
@@ -102,7 +104,14 @@ export default function CartPage() {
   const decreaseCartItem = useStore((state) => state.decreaseCartItem);
   const removeFromCart = useStore((state) => state.removeFromCart);
   const clearCart = useStore((state) => state.clearCart);
-  const [activeRegion, setActiveRegion] = useState<StoreRegion>("IN");
+  const activeRegion = useStore((state) => state.selectedRegion);
+
+  const activeRate = useRegionRate(activeRegion);
+
+  function fmtGamePrice(amount: number | null): string {
+    if (amount === null) return "Цена недоступна";
+    return formatPriceAsRubles(amount, activeRate);
+  }
   const [catalog, setCatalog] = useState<CatalogDenomination[]>(
     getFallbackCatalog,
   );
@@ -126,19 +135,8 @@ export default function CartPage() {
 
   const regionCart = useMemo(
     () =>
-      cart.filter((item) => (item.region ?? "IN") === activeRegion),
+      cart.filter((item) => (item.region ?? "TR") === activeRegion),
     [activeRegion, cart],
-  );
-  const counts = useMemo(
-    () => ({
-      IN: cart
-        .filter((item) => (item.region ?? "IN") === "IN")
-        .reduce((sum, item) => sum + item.quantity, 0),
-      TR: cart
-        .filter((item) => (item.region ?? "IN") === "TR")
-        .reduce((sum, item) => sum + item.quantity, 0),
-    }),
-    [cart],
   );
   const total = useMemo(
     () =>
@@ -165,23 +163,21 @@ export default function CartPage() {
     () => recommendGiftCards(total, regionOptions),
     [regionOptions, total],
   );
-  const cartIds = useMemo(
-    () => new Set(regionCart.map((item) => item.id)),
+  const cartGameIds = useMemo(
+    () => new Set(regionCart.map((item) => item.gameId ?? item.id)),
     [regionCart],
   );
   const suggestedGames = useMemo(() => {
-    if (activeRegion !== "IN" || !recommendation || recommendation.remainder <= 0) {
-      return [];
-    }
+    if (!recommendation || recommendation.remainder <= 0) return [];
 
     return psnDeals
       .filter(
         (game) =>
-          game.price <= recommendation.remainder && !cartIds.has(game.id),
+          game.price != null && game.price <= recommendation.remainder && !cartGameIds.has(game.id),
       )
-      .sort((a, b) => b.price - a.price)
+      .sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
       .slice(0, 4);
-  }, [activeRegion, cartIds, recommendation]);
+  }, [cartGameIds, recommendation]);
   const config = REGION_CONFIG[activeRegion];
 
   return (
@@ -210,39 +206,11 @@ export default function CartPage() {
             </h1>
           </div>
 
-          <div
-            className="inline-grid w-full grid-cols-2 rounded-[15px] border border-[var(--line-strong)] bg-[var(--card-surface)] p-1.5 sm:w-auto"
-            role="tablist"
-            aria-label="Регион корзины"
-          >
-            {(["TR", "IN"] as const).map((region) => (
-              <button
-                key={region}
-                type="button"
-                role="tab"
-                aria-selected={activeRegion === region}
-                onClick={() => setActiveRegion(region)}
-                className={`min-w-[142px] rounded-[11px] px-4 py-3 text-sm font-extrabold transition ${
-                  activeRegion === region
-                    ? "bg-[var(--ink)] text-[var(--signal)]"
-                    : "text-[var(--text-muted)] hover:text-[var(--ink)]"
-                }`}
-              >
-                {REGION_CONFIG[region].name}
-                {counts[region] > 0 && (
-                  <span
-                    className={`ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] ${
-                      activeRegion === region
-                        ? "bg-[var(--signal)] text-[var(--ink)]"
-                        : "bg-[var(--paper)] text-[var(--ink)]"
-                    }`}
-                  >
-                    {counts[region]}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+          {regionCart.length > 0 && (
+            <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--ink)] px-2.5 text-sm font-extrabold text-[var(--signal)]">
+              {regionCart.reduce((s, i) => s + i.quantity, 0)}
+            </span>
+          )}
         </div>
 
         {regionCart.length === 0 ? (
@@ -251,11 +219,10 @@ export default function CartPage() {
               <CartIcon />
             </div>
             <h2 className="mt-6 text-2xl font-bold text-[var(--ink)]">
-              Корзина «{config.name}» пока пуста
+              Корзина пока пуста
             </h2>
             <p className="mt-2 max-w-xl text-[var(--text-muted)]">
-              Игры разных регионов не смешиваются: для каждой корзины будет
-              отдельно подобрана карта пополнения.
+              Добавь игры из каталога, чтобы подобрать карту пополнения.
             </p>
             <Link
               href="/"
@@ -341,7 +308,7 @@ export default function CartPage() {
                     <div className="flex justify-between gap-4">
                       <dt className="text-[var(--text-muted)]">Игры в PS Store</dt>
                       <dd className="font-bold">
-                        {formatRegionalAmount(activeRegion, total)}
+                        {fmtGamePrice(total)}
                       </dd>
                     </div>
                     <div className="flex justify-between gap-4">
@@ -410,7 +377,7 @@ export default function CartPage() {
                     Выбранные товары
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-[var(--ink)]">
-                    Игры на {formatRegionalAmount(activeRegion, total)}
+                    Игры на {fmtGamePrice(total)}
                   </h2>
                 </div>
                 <button
@@ -439,15 +406,13 @@ export default function CartPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <Link
-                        href={`/game/${item.id}`}
+                        href={`/game/${item.gameId ?? item.id}`}
                         className="line-clamp-2 text-lg font-bold text-[var(--ink)] hover:underline sm:text-xl"
                       >
                         {item.title}
                       </Link>
                       <p className="mt-2 font-extrabold text-[var(--ink)]">
-                        {item.price === null
-                          ? "Цена недоступна"
-                          : formatRegionalAmount(activeRegion, item.price)}
+                        {fmtGamePrice(item.price)}
                       </p>
                       <div className="mt-4 flex flex-wrap items-center gap-2">
                         <button
@@ -525,14 +490,14 @@ export default function CartPage() {
                           </Link>
                           <div className="mt-4 flex items-center justify-between gap-3">
                             <span className="text-lg font-extrabold">
-                              {formatRegionalAmount("IN", game.price)}
+                              {fmtGamePrice(game.price)}
                             </span>
                             <button
                               type="button"
                               onClick={() =>
                                 addToCart({
                                   id: game.id,
-                                  region: "IN",
+                                  region: activeRegion,
                                   title: game.title,
                                   price: game.price,
                                   image: game.image,

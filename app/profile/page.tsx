@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { signOut, auth } from "@/auth";
 import AuthModal from "@/components/AuthModal";
-import FloatingBudgetStatus from "@/components/FloatingBudgetStatus";
 import Header from "@/components/Header";
 import { getAccountOverview } from "@/lib/account/queries";
 import { isAdminEmail } from "@/lib/auth/admin";
@@ -162,19 +161,6 @@ export default async function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex min-h-[220px] flex-col gap-3 rounded-[20px] bg-[var(--ink)] p-5 text-white md:p-6">
-                <div>
-                  <p className="text-sm font-bold text-white/55">
-                    Баланс и корзина
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-white/55">
-                    Быстро сверяй выбранный номинал с текущей корзиной.
-                  </p>
-                </div>
-                <div className="mt-auto">
-                  <FloatingBudgetStatus variant="embedded" />
-                </div>
-              </div>
             </div>
           </section>
         )}
@@ -188,7 +174,7 @@ export default async function ProfilePage() {
               Управление курсами
             </h2>
             <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-              Измени курс INR/TRY к рублю и проверь превью цен.
+              Измени курс TRY к рублю и проверь превью цен.
             </p>
             <Link
               href="/admin/pricing"

@@ -2,26 +2,28 @@ export type RegionPricingRate = {
   region: string;
   currency: string;
   rubMinorPerUnit: number;
+  /** Markup coefficient in basis points (10 000 = 1.0×, 15 000 = 1.5×). */
+  cardCoefficientBps: number;
   updatedAt: string;
 };
 
 /**
  * Default rates used as a fallback when the database is unavailable.
- * Mirrors the seed in db/migrations/005_regional_pricing_rates.sql.
+ * Mirrors the seeds in db/migrations/005_regional_pricing_rates.sql and
+ * db/migrations/006_card_coefficient.sql.
  */
 export const DEFAULT_REGION_PRICING_RATES: ReadonlyArray<
-  Pick<RegionPricingRate, "region" | "currency" | "rubMinorPerUnit">
+  Pick<RegionPricingRate, "region" | "currency" | "rubMinorPerUnit" | "cardCoefficientBps">
 > = [
-  { region: "IN", currency: "INR", rubMinorPerUnit: 125 },
-  { region: "TR", currency: "TRY", rubMinorPerUnit: 225 },
+  { region: "TR", currency: "TRY", rubMinorPerUnit: 225, cardCoefficientBps: 25000 },
 ];
 
 /**
  * Converts an amount in a region's major currency units into rubles, expressed
  * in minor units (kopecks). Stays in integer arithmetic to avoid float drift.
  *
- * calculateRubMinor(1000, 125) === 125000  // 1000 INR -> 1250 ₽
  * calculateRubMinor(1000, 225) === 225000  // 1000 TRY -> 2250 ₽
+ * calculateRubMinor(1000, 250) === 250000  // 1000 TRY -> 2500 ₽
  */
 export function calculateRubMinor(
   amountMajor: number,
@@ -93,7 +95,6 @@ const REGIONAL_CURRENCY_FORMAT: Record<
   string,
   { symbol: string; locale: string }
 > = {
-  INR: { symbol: "₹", locale: "en-IN" },
   TRY: { symbol: "₺", locale: "tr-TR" },
 };
 
@@ -111,6 +112,77 @@ export function formatRegionalPrice(
     locale: "ru-RU",
   };
   return `${config.symbol}${amountMajor.toLocaleString(config.locale)}`;
+}
+
+/**
+ * Returns the effective rate for `region` in kopecks per currency unit,
+ * derived directly from cardCoefficientBps (no separate exchange-rate step).
+ *
+ * getRegionRate("TR") with cardCoefficientBps=25000 → 250 (= 2.5 ₽ per ₺1)
+ */
+export function getRegionRate(
+  region: string,
+  rates: ReadonlyArray<
+    Pick<RegionPricingRate, "region" | "cardCoefficientBps">
+  > = DEFAULT_REGION_PRICING_RATES,
+): number {
+  const bps =
+    rates.find((r) => r.region === region)?.cardCoefficientBps ??
+    DEFAULT_REGION_PRICING_RATES.find((r) => r.region === region)
+      ?.cardCoefficientBps;
+  return bps !== undefined ? bps / 100 : 100;
+}
+
+/**
+ * Converts a regional price (in major units) to a formatted ruble string.
+ *
+ * formatPriceAsRubles(1000, 225) === "2 250 ₽"
+ */
+export function formatPriceAsRubles(
+  amountMajor: number,
+  rubMinorPerUnit: number,
+): string {
+  return formatRubles(calculateRubMinor(Math.round(amountMajor), rubMinorPerUnit));
+}
+
+/**
+ * Parses a coefficient string ("1.5", "2,5") to integer basis points (×10 000).
+ *
+ * parseCoeffToBps("1.5")  === 15000
+ * parseCoeffToBps("2,5")  === 25000
+ */
+export function parseCoeffToBps(value: string): number {
+  if (typeof value !== "string") throw new Error("Coefficient must be a string");
+  const normalized = value.trim().replace(",", ".");
+  if (!/^\d+(\.\d{1,4})?$/.test(normalized)) {
+    throw new Error("Coefficient must be a positive number with up to 4 decimal places");
+  }
+  const parsed = Math.round(Number(normalized) * 10000);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error("Coefficient must be greater than zero");
+  }
+  return parsed;
+}
+
+/** Formats basis points as a coefficient string ("15000" → "1.5"). */
+export function formatCoeff(bps: number): string {
+  const whole = Math.floor(bps / 10000);
+  const frac = bps % 10000;
+  if (frac === 0) return String(whole);
+  return `${whole}.${String(frac).padStart(4, "0").replace(/0+$/, "")}`;
+}
+
+/**
+ * Computes the ruble sale price (in kopecks) for a gift card.
+ * Formula: nominal × coefficient, where coefficient = cardCoefficientBps / 10000.
+ *
+ * computeCardSaleMinor(1000, 15000) === 150000  // ₹1000 × 1.5 → 1500 ₽
+ */
+export function computeCardSaleMinor(
+  nominalMajor: number,
+  cardCoefficientBps: number,
+): number {
+  return Math.round(nominalMajor * cardCoefficientBps / 100);
 }
 
 // Database-backed accessors live in ./rates.server.ts so this module stays

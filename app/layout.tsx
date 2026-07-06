@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Unbounded, Wix_Madefor_Text } from "next/font/google";
-import FloatingBudgetStatus from "@/components/FloatingBudgetStatus";
+import { RegionRatesProvider } from "@/lib/pricing/context";
+import { getRegionRate } from "@/lib/pricing/rates";
+import { getRegionalPricingRates } from "@/lib/pricing/rates.server";
 import "./globals.css";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -25,16 +27,20 @@ export const metadata: Metadata = {
   description: "Игры под твой бюджет",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const rates = await getRegionalPricingRates().catch(() => []);
+  const tryRate = getRegionRate("TR", rates);
+
   return (
     <html lang="ru" className={`${unbounded.variable} ${wixMadefor.variable}`}>
       <body>
-        {children}
-        <FloatingBudgetStatus />
+        <RegionRatesProvider rates={{ TR: tryRate }}>
+          {children}
+        </RegionRatesProvider>
       </body>
     </html>
   );

@@ -1,65 +1,90 @@
+export const dynamic = "force-dynamic";
+
 import Header from "@/components/Header";
 import BudgetHero from "@/components/BudgetHero";
 import BudgetGamesSection from "@/components/BudgetGamesSection";
-import GameRowSection from "@/components/GameRowSection";
+import RegionSections from "@/components/RegionSections";
 import TrustStrip from "@/components/TrustStrip";
-import { psnDeals } from "@/data/psnDeals";
+import PromoBanner from "@/components/PromoBanner";
+import { getPsnGamesForRegion, getCollectionsForRegion, getFeaturedPromoForRegion } from "@/lib/psn/storefront";
 import { newGames } from "@/data/newGames";
 import { preorderGames } from "@/data/preorderGames";
+import type { Game } from "@/data/mockGames";
 
-export default function Home() {
-  const heroCovers = psnDeals.slice(0, 4).map((g) => ({
-    id: g.id,
-    title: g.title,
-    image: g.image,
-  }));
+function customerChoiceCovers(games: Game[]) {
+  const rated = games.filter(
+    (game) => game.rating != null && (game.ratingsCount ?? 0) > 0,
+  );
+  const average =
+    rated.length > 0
+      ? rated.reduce((sum, game) => sum + (game.rating ?? 0), 0) / rated.length
+      : 0;
+  const sortedByCount = [...rated].sort(
+    (a, b) => (a.ratingsCount ?? 0) - (b.ratingsCount ?? 0),
+  );
+  const threshold =
+    sortedByCount[Math.floor(sortedByCount.length / 2)]?.ratingsCount ?? 1;
+  const score = (game: Game) => {
+    const votes = game.ratingsCount ?? 0;
+    const rating = game.rating ?? 0;
+    if (votes === 0) return 0;
+    return (votes * rating + threshold * average) / (votes + threshold);
+  };
 
-  // "Скидки недели" — порядок как в файле
-  const weekDeals = psnDeals.slice(0, 20);
+  return [...games]
+    .sort((a, b) => score(b) - score(a))
+    .slice(0, 4)
+    .map((game) => ({
+      id: game.id,
+      title: game.title,
+      image: game.image,
+    }));
+}
 
-  // "Новинки" — порядок как в файле
-  const newReleases = newGames.slice(0, 20);
+export default async function Home() {
+  const [gamesTR, collectionsTR, featuredPromoTR] = await Promise.all([
+    getPsnGamesForRegion("TR"),
+    getCollectionsForRegion("TR"),
+    getFeaturedPromoForRegion("TR"),
+  ]);
 
-  // "Предзаказы" — порядок как в файле
-  const preorders = preorderGames.slice(0, 20);
+  const catalog = { TR: gamesTR };
+  const collections = { TR: collectionsTR };
 
-  // "Выбор покупателей" — из Deals, по рейтингу
-  const customerChoice = psnDeals
-    .filter((g) => g.rating !== null)
-    .sort((a, b) => {
-      const ratingDiff = (b.rating ?? 0) - (a.rating ?? 0);
-      if (Math.abs(ratingDiff) > 0.09) return ratingDiff;
-      // При одинаковом рейтинге озвучка приоритетнее субтитров
-      return (b.russianVoice ? 1 : 0) - (a.russianVoice ? 1 : 0);
-    })
-    .slice(0, 20);
+  const heroCovers = {
+    TR: customerChoiceCovers(gamesTR),
+  };
 
   return (
     <main className="min-h-screen pb-28 md:pb-32">
       <Header />
       <BudgetHero coverGames={heroCovers} />
 
-      {/* 1. Игры под твой бюджет — client component, фильтрует по selectedBudget */}
+      {featuredPromoTR && (
+        <PromoBanner
+          game={featuredPromoTR.game}
+          releaseLabel={featuredPromoTR.releaseLabel}
+          ctaLabel={featuredPromoTR.ctaLabel}
+        />
+      )}
+
+      {/* Игры под бюджет — клиентский, переключается по selectedRegion */}
       <div className="mt-10">
-        <BudgetGamesSection />
+        <BudgetGamesSection catalog={catalog} />
       </div>
 
       <div className="mt-8">
         <TrustStrip />
       </div>
 
-      <div className="mt-10 space-y-10 md:space-y-12">
-        {/* 2. Скидки недели */}
-        <GameRowSection title="Скидки недели" games={weekDeals} />
-
-        {/* 3. Новинки */}
-        <GameRowSection title="Новинки" games={newReleases} />
-
-        {/* 4. Предзаказы */}
-        <GameRowSection title="Предзаказы" games={preorders} />
-
-        {/* 5. Выбор покупателей */}
-        <GameRowSection title="Выбор покупателей" games={customerChoice} />
+      {/* Все подборки — клиентский, переключается по selectedRegion */}
+      <div className="mt-10">
+        <RegionSections
+          catalog={catalog}
+          collections={collections}
+          staticNewGames={newGames.slice(0, 20)}
+          staticPreorders={preorderGames.slice(0, 20)}
+        />
       </div>
     </main>
   );

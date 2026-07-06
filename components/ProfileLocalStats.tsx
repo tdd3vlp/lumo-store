@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRegionRate } from "@/lib/pricing/context";
+import { formatPriceAsRubles } from "@/lib/pricing/rates";
 import { useStore } from "@/store/useStore";
-import { formatRegionalPrice } from "@/lib/pricing/rates";
 
 export default function ProfileLocalStats() {
   const favorites = useStore((state) => state.favorites);
   const cart = useStore((state) => state.cart);
+  const tryRate = useRegionRate("TR");
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = Math.round(
@@ -39,7 +41,7 @@ export default function ProfileLocalStats() {
       <div className="mt-3 rounded-[15px] border border-white/14 bg-white/[0.055] p-4">
         <span className="block text-sm text-white/55">Сумма корзины</span>
         <span className="mt-1 block text-2xl font-bold text-white">
-          {formatRegionalPrice(cartTotal, "INR")}
+          {formatPriceAsRubles(cartTotal, tryRate)}
         </span>
       </div>
     </section>

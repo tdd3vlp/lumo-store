@@ -54,7 +54,6 @@ describe("gift card recommendations", () => {
 
 describe("regional formatting", () => {
   it("formats store amounts by region", () => {
-    assert.equal(formatRegionalAmount("IN", 12000), "₹12,000");
     assert.equal(formatRegionalAmount("TR", 12000), "₺12.000");
   });
 

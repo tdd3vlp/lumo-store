@@ -1,26 +1,33 @@
 export type GameEdition = {
   id: string;
   name: string;
-  price: number;
-  originalPrice: number;
+  price: number | null;
+  originalPrice: number | null;
 };
 
 export type Game = {
   id: number;
-  region?: "IN" | "TR";
+  region?: "TR";
   title: string;
   image: string;
-  price: number;
-  originalPrice: number;
+  price: number | null;
+  originalPrice: number | null;
   description: string;
   platform: string;
   russianVoice: boolean;
   russianSubtitles: boolean;
+  englishVoice?: boolean;
+  englishSubtitles?: boolean;
   rating: number | null;
   releaseDate: string;
   psStoreUrl?: string;
   editions: GameEdition[];
   screenshots: string[];
+  genres?: string[];
+  publisher?: string | null;
+  ratingsCount?: number | null;
+  salesRank?: number | null;
+  saleEndDate?: string | null;
 };
 
 export const games: Game[] = [

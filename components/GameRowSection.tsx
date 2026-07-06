@@ -3,6 +3,7 @@
 import { useState } from "react";
 import GameCard from "@/components/GameCard";
 import { gameLanguageSupport } from "@/data/gameLanguageSupport";
+import type { StoreRegion } from "@/store/useStore";
 
 type RowGame = {
   id: number;
@@ -13,6 +14,9 @@ type RowGame = {
   platform?: string;
   russianVoice?: boolean;
   russianSubtitles?: boolean;
+  englishVoice?: boolean;
+  englishSubtitles?: boolean;
+  region?: StoreRegion;
 };
 
 type Props = {
@@ -97,8 +101,14 @@ export default function GameRowSection({
             platform={game.platform}
             russianVoice={game.russianVoice}
             russianSubtitles={game.russianSubtitles}
-            englishVoice={gameLanguageSupport[game.id]?.englishVoice}
-            englishSubtitles={gameLanguageSupport[game.id]?.englishSubtitles}
+            englishVoice={
+              game.englishVoice ?? gameLanguageSupport[game.id]?.englishVoice
+            }
+            englishSubtitles={
+              game.englishSubtitles ??
+              gameLanguageSupport[game.id]?.englishSubtitles
+            }
+            region={game.region}
           />
         ))}
       </div>

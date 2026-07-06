@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/auth/admin";
-import { parseRubRateToMinorPerUnit } from "@/lib/pricing/rates";
+import { parseCoeffToBps, parseRubRateToMinorPerUnit } from "@/lib/pricing/rates";
 import {
   getRegionalPricingRates,
   updateRegionalPricingRate,
@@ -46,20 +46,16 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const region =
-    typeof (body as { region?: unknown })?.region === "string"
-      ? (body as { region: string }).region.trim()
-      : "";
-  const rateValue = (body as { rate?: unknown })?.rate;
+  const b = body as Record<string, unknown>;
+  const region = typeof b?.region === "string" ? b.region.trim() : "";
+  const rateValue = b?.rate;
+  const coeffValue = b?.cardCoefficient;
 
   if (!region) {
     return Response.json({ error: "region is required" }, { status: 400 });
   }
   if (typeof rateValue !== "string") {
-    return Response.json(
-      { error: "rate must be a string" },
-      { status: 400 },
-    );
+    return Response.json({ error: "rate must be a string" }, { status: 400 });
   }
 
   let rubMinorPerUnit: number;
@@ -72,8 +68,26 @@ export async function POST(request: Request) {
     );
   }
 
+  let cardCoefficientBps: number | undefined;
+  if (coeffValue !== undefined) {
+    if (typeof coeffValue !== "string") {
+      return Response.json(
+        { error: "cardCoefficient must be a string" },
+        { status: 400 },
+      );
+    }
+    try {
+      cardCoefficientBps = parseCoeffToBps(coeffValue);
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : "Invalid coefficient" },
+        { status: 400 },
+      );
+    }
+  }
+
   try {
-    const rate = await updateRegionalPricingRate(region, rubMinorPerUnit);
+    const rate = await updateRegionalPricingRate(region, rubMinorPerUnit, cardCoefficientBps);
     return Response.json({ rate });
   } catch (error) {
     const message =

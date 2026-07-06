@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# nginx TLS certs (never commit private keys)
+nginx/certs/
+
 # vercel
 .vercel
 

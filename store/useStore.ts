@@ -5,21 +5,27 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export type CartItem = {
   id: number;
+  gameId: number;
   region: StoreRegion;
   title: string;
+  edition?: string;
   price: number | null;
+  originalPrice?: number | null;
   formattedPrice: string | null;
   image: string;
   quantity: number;
 };
 
-export type StoreRegion = "IN" | "TR";
+export type StoreRegion = "TR";
 
 type AddToCartPayload = {
   id: number;
+  gameId?: number;
   region?: StoreRegion;
   title: string;
+  edition?: string;
   price: number | null;
+  originalPrice?: number | null;
   formattedPrice?: string | null;
   image: string;
 };
@@ -28,7 +34,8 @@ type StoreState = {
   favorites: number[];
   cart: CartItem[];
   search: string;
-  selectedBudget: number;
+  selectedBudgets: Record<StoreRegion, number>;
+  selectedRegion: StoreRegion;
 
   toggleFavorite: (id: number) => void;
   addToCart: (game: AddToCartPayload) => void;
@@ -37,6 +44,7 @@ type StoreState = {
   clearCart: (region?: StoreRegion) => void;
   setSearch: (value: string) => void;
   setSelectedBudget: (budget: number) => void;
+  setSelectedRegion: (region: StoreRegion) => void;
 };
 
 export const useStore = create<StoreState>()(
@@ -45,7 +53,8 @@ export const useStore = create<StoreState>()(
       favorites: [],
       cart: [],
       search: "",
-      selectedBudget: 3000,
+      selectedBudgets: { TR: 1000 },
+      selectedRegion: "TR",
 
       toggleFavorite: (id) => {
         const { favorites } = get();
@@ -60,15 +69,15 @@ export const useStore = create<StoreState>()(
 
       addToCart: (game) => {
         const { cart } = get();
-        const region = game.region ?? "IN";
+        const region = game.region ?? "TR";
         const existing = cart.find(
-          (item) => item.id === game.id && (item.region ?? "IN") === region,
+          (item) => item.id === game.id && (item.region ?? "TR") === region,
         );
 
         if (existing) {
           set({
             cart: cart.map((item) =>
-              item.id === game.id && (item.region ?? "IN") === region
+              item.id === game.id && (item.region ?? "TR") === region
                 ? { ...item, quantity: item.quantity + 1 }
                 : item,
             ),
@@ -81,9 +90,12 @@ export const useStore = create<StoreState>()(
             ...cart,
             {
               id: game.id,
+              gameId: game.gameId ?? game.id,
               region,
               title: game.title,
+              edition: game.edition,
               price: game.price,
+              originalPrice: game.originalPrice ?? null,
               formattedPrice: game.formattedPrice ?? null,
               image: game.image,
               quantity: 1,
@@ -92,10 +104,10 @@ export const useStore = create<StoreState>()(
         });
       },
 
-      decreaseCartItem: (id, region = "IN") => {
+      decreaseCartItem: (id, region = "TR") => {
         const { cart } = get();
         const existing = cart.find(
-          (item) => item.id === id && (item.region ?? "IN") === region,
+          (item) => item.id === id && (item.region ?? "TR") === region,
         );
 
         if (!existing) return;
@@ -103,7 +115,7 @@ export const useStore = create<StoreState>()(
         if (existing.quantity === 1) {
           set({
             cart: cart.filter(
-              (item) => item.id !== id || (item.region ?? "IN") !== region,
+              (item) => item.id !== id || (item.region ?? "TR") !== region,
             ),
           });
           return;
@@ -111,19 +123,19 @@ export const useStore = create<StoreState>()(
 
         set({
           cart: cart.map((item) =>
-            item.id === id && (item.region ?? "IN") === region
+            item.id === id && (item.region ?? "TR") === region
               ? { ...item, quantity: item.quantity - 1 }
               : item,
           ),
         });
       },
 
-      removeFromCart: (id, region = "IN") => {
+      removeFromCart: (id, region = "TR") => {
         const { cart } = get();
 
         set({
           cart: cart.filter(
-            (item) => item.id !== id || (item.region ?? "IN") !== region,
+            (item) => item.id !== id || (item.region ?? "TR") !== region,
           ),
         });
       },
@@ -131,21 +143,27 @@ export const useStore = create<StoreState>()(
       clearCart: (region) =>
         set(({ cart }) => ({
           cart: region
-            ? cart.filter((item) => (item.region ?? "IN") !== region)
+            ? cart.filter((item) => (item.region ?? "TR") !== region)
             : [],
         })),
 
       setSearch: (value) => set({ search: value }),
 
-      setSelectedBudget: (budget) => set({ selectedBudget: budget }),
+      setSelectedBudget: (budget) =>
+        set(({ selectedBudgets, selectedRegion }) => ({
+          selectedBudgets: { ...selectedBudgets, [selectedRegion]: budget },
+        })),
+
+      setSelectedRegion: (region) => set({ selectedRegion: region }),
     }),
     {
-      name: "psn-helper-store",
+      name: "lumo-store",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         favorites: state.favorites,
         cart: state.cart,
-        selectedBudget: state.selectedBudget,
+        selectedBudgets: state.selectedBudgets,
+        selectedRegion: state.selectedRegion,
       }),
     },
   ),

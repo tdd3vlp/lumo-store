@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AuthModal from "@/components/AuthModal";
 import CartPreview from "@/components/CartPreview";
-import { REGION_CONFIG } from "@/lib/gift-cards/regions";
-import { useStore, type StoreRegion } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 
 function SearchIcon({ className }: { className?: string }) {
   return (
@@ -129,15 +128,19 @@ export default function Header() {
   const search = useStore((state) => state.search);
   const setSearch = useStore((state) => state.setSearch);
 
+  const selectedRegion = useStore((state) => state.selectedRegion);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState<StoreRegion>("TR");
 
   const cartCount = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
-    [cart],
+    () =>
+      cart
+        .filter((item) => (item.region ?? "TR") === selectedRegion)
+        .reduce((sum, item) => sum + item.quantity, 0),
+    [cart, selectedRegion],
   );
   const favCount = favorites.length;
 
@@ -170,7 +173,7 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 bg-[var(--ink)] border-b border-[var(--line-inverse)]">
-        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr] items-center gap-3 px-4 py-3 md:grid-cols-[minmax(0,440px)_1fr_auto] md:gap-4 md:px-6 lg:grid-cols-[minmax(0,500px)_1fr_auto] lg:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr] items-center gap-3 px-4 py-3 md:grid-cols-[minmax(0,540px)_auto] md:gap-4 md:px-6 lg:grid-cols-[minmax(0,620px)_auto] lg:px-8">
           <div className="flex min-w-0 items-center gap-3 md:gap-4">
             {/* Wordmark */}
             <Link href="/" className="flex shrink-0 items-center gap-1.5 group">
@@ -194,33 +197,6 @@ export default function Header() {
                 className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
               />
             </div>
-          </div>
-
-          {/* Region – desktop */}
-          <div
-            className="hidden justify-self-center md:flex items-center gap-1 rounded-xl border border-[var(--line-inverse)] bg-[var(--ink-soft)] p-1"
-            role="group"
-            aria-label="Выбор региона"
-          >
-            {(["TR", "IN"] as const).map((region) => {
-              const active = selectedRegion === region;
-
-              return (
-                <button
-                  key={region}
-                  type="button"
-                  onClick={() => setSelectedRegion(region)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-[var(--signal)] ${
-                    active
-                      ? "bg-[var(--signal)] text-[var(--ink)]"
-                      : "text-white/70 hover:bg-white/5 hover:text-white"
-                  }`}
-                  aria-pressed={active}
-                >
-                  {REGION_CONFIG[region].name}
-                </button>
-              );
-            })}
           </div>
 
           <div className="hidden items-center gap-2 justify-self-end md:flex">
@@ -290,17 +266,6 @@ export default function Header() {
               aria-expanded={mobileSearchOpen}
             >
               <SearchIcon />
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setSelectedRegion((region) => (region === "TR" ? "IN" : "TR"))
-              }
-              className="flex h-10 min-w-14 items-center justify-center rounded-xl border border-[var(--line-inverse)] px-2 text-xs font-black text-white/80 transition hover:text-white focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
-              aria-label={`Выбор региона: ${REGION_CONFIG[selectedRegion].name}`}
-            >
-              {selectedRegion}
             </button>
 
             {isAuthenticated ? (
@@ -396,32 +361,6 @@ export default function Header() {
             </div>
 
             <nav className="flex flex-col gap-1 p-4" aria-label="Навигация">
-              <div className="mb-2 rounded-xl border border-[var(--line-inverse)] p-1">
-                <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
-                  Выбор региона
-                </p>
-                <div className="grid grid-cols-2 gap-1">
-                  {(["TR", "IN"] as const).map((region) => {
-                    const active = selectedRegion === region;
-
-                    return (
-                      <button
-                        key={region}
-                        type="button"
-                        onClick={() => setSelectedRegion(region)}
-                        className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                          active
-                            ? "bg-[var(--signal)] text-[var(--ink)]"
-                            : "text-white/75 hover:bg-white/5 hover:text-white"
-                        }`}
-                        aria-pressed={active}
-                      >
-                        {REGION_CONFIG[region].name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}

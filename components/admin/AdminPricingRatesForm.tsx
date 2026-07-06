@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import {
-  calculateRubMinor,
-  formatRubRate,
+  computeCardSaleMinor,
+  formatCoeff,
   formatRubles,
-  parseRubRateToMinorPerUnit,
+  parseCoeffToBps,
   type RegionPricingRate,
 } from "@/lib/pricing/rates";
 
 const REGION_LABELS: Record<string, string> = {
-  IN: "Индия",
   TR: "Турция",
 };
 
@@ -19,15 +18,15 @@ const PREVIEW_AMOUNT = 1000;
 type RowState = {
   region: string;
   currency: string;
-  input: string;
+  coeffInput: string;
   saving: boolean;
   message: { kind: "success" | "error"; text: string } | null;
 };
 
-function previewFor(input: string): string | null {
+function preview(coeffInput: string): string | null {
   try {
-    const minorPerUnit = parseRubRateToMinorPerUnit(input);
-    return formatRubles(calculateRubMinor(PREVIEW_AMOUNT, minorPerUnit));
+    const coeffBps = parseCoeffToBps(coeffInput);
+    return formatRubles(computeCardSaleMinor(PREVIEW_AMOUNT, coeffBps));
   } catch {
     return null;
   }
@@ -37,7 +36,7 @@ function toRows(rates: RegionPricingRate[]): RowState[] {
   return rates.map((rate) => ({
     region: rate.region,
     currency: rate.currency,
-    input: formatRubRate(rate.rubMinorPerUnit),
+    coeffInput: formatCoeff(rate.cardCoefficientBps),
     saving: false,
     message: null,
   }));
@@ -64,7 +63,11 @@ export default function AdminPricingRatesForm({
       const response = await fetch("/api/admin/pricing-rates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ region: row.region, rate: row.input }),
+        body: JSON.stringify({
+          region: row.region,
+          rate: row.coeffInput,
+          cardCoefficient: row.coeffInput,
+        }),
       });
       if (response.status === 401 || response.status === 403) {
         updateRow(row.region, {
@@ -84,7 +87,7 @@ export default function AdminPricingRatesForm({
         throw new Error(data.error ?? "Не удалось сохранить");
       }
       updateRow(row.region, {
-        input: formatRubRate(data.rate.rubMinorPerUnit),
+        coeffInput: formatCoeff(data.rate.cardCoefficientBps),
         saving: false,
         message: { kind: "success", text: "Сохранено" },
       });
@@ -102,7 +105,8 @@ export default function AdminPricingRatesForm({
   return (
     <div className="mt-8 grid gap-4">
       {rows.map((row) => {
-        const preview = previewFor(row.input);
+        const prev = preview(row.coeffInput);
+        const canSave = prev !== null;
         return (
           <section
             key={row.region}
@@ -117,32 +121,30 @@ export default function AdminPricingRatesForm({
               </span>
             </div>
 
-            <label className="mt-4 block text-sm font-bold text-[var(--text-muted)]">
-              ₽ за 1 {row.currency}
-            </label>
-            <input
-              inputMode="decimal"
-              value={row.input}
-              onChange={(event) =>
-                updateRow(row.region, {
-                  input: event.target.value,
-                  message: null,
-                })
-              }
-              className="mt-2 w-40 rounded-[12px] border border-[var(--line-strong)] bg-[var(--paper-strong)] px-3 py-2 text-lg font-bold text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)]"
-            />
+            <div className="mt-4">
+              <label className="block text-sm font-bold text-[var(--text-muted)]">
+                ₽ за 1 {row.currency}
+              </label>
+              <input
+                inputMode="decimal"
+                value={row.coeffInput}
+                onChange={(e) =>
+                  updateRow(row.region, { coeffInput: e.target.value, message: null })
+                }
+                className="mt-2 w-36 rounded-[12px] border border-[var(--line-strong)] bg-[var(--paper-strong)] px-3 py-2 text-lg font-bold text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)]"
+              />
+              <p className="mt-2 text-sm text-[var(--text-muted)]">
+                {PREVIEW_AMOUNT} {row.currency} ={" "}
+                <span className="font-bold text-[var(--ink)]">{prev ?? "—"}</span>
+                {" · "}карта {PREVIEW_AMOUNT} {row.currency} ={" "}
+                <span className="font-bold text-[var(--ink)]">{prev ?? "—"}</span>
+              </p>
+            </div>
 
-            <p className="mt-3 text-sm text-[var(--text-muted)]">
-              Превью:{" "}
-              <span className="font-bold text-[var(--ink)]">
-                {PREVIEW_AMOUNT} {row.currency} = {preview ?? "—"}
-              </span>
-            </p>
-
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-5 flex items-center gap-3">
               <button
                 type="button"
-                disabled={row.saving || preview === null}
+                disabled={row.saving || !canSave}
                 onClick={() => void save(row)}
                 className="rounded-[12px] bg-[var(--signal)] px-5 py-2.5 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:cursor-not-allowed disabled:opacity-55"
               >

@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRegionRate } from "@/lib/pricing/context";
+import { formatPriceAsRubles } from "@/lib/pricing/rates";
 import { useStore, type StoreRegion } from "@/store/useStore";
 
 type Props = {
@@ -18,10 +20,9 @@ type Props = {
   region?: StoreRegion;
 };
 
-function formatPrice(value: string | number | null | undefined) {
-  if (value === null || value === undefined) return "Цена недоступна";
-  if (typeof value === "string") return value;
-  return `₹${value.toLocaleString("en-IN")}`;
+function formatPrice(value: number | null | undefined, rate: number): string {
+  if (value == null) return "Цена недоступна";
+  return formatPriceAsRubles(value, rate);
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -111,18 +112,19 @@ export default function GameCard({
   russianSubtitles,
   englishVoice,
   englishSubtitles,
-  region = "IN",
+  region = "TR",
 }: Props) {
   const favorites = useStore((state) => state.favorites);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
   const cart = useStore((state) => state.cart);
   const addToCart = useStore((state) => state.addToCart);
+  const rate = useRegionRate(region);
 
   const numericPrice = getNumericPrice(price);
   const priceUnavailable = numericPrice === null;
   const isFavorite = favorites.includes(id);
   const isInCart = cart.some(
-    (item) => item.id === id && (item.region ?? "IN") === region,
+    (item) => item.id === id && (item.region ?? "TR") === region,
   );
   const hasDiscount =
     numericPrice !== null &&
@@ -135,7 +137,7 @@ export default function GameCard({
       : null;
   const handleAddToCart = () => {
     if (numericPrice === null) return;
-    addToCart({ id, region, title, price: numericPrice, image });
+    addToCart({ id, gameId: id, region, title, price: numericPrice, originalPrice, image });
   };
 
   return (
@@ -222,7 +224,7 @@ export default function GameCard({
               <SubtitlesIcon />
             </span>
           )}
-          {!russianVoice && !russianSubtitles && englishVoice && (
+          {!russianVoice && englishVoice && (
             <span
               className="inline-flex h-7 items-center justify-center gap-1.5 rounded-[7px] border border-[var(--ink)]/14 bg-[var(--ink)] px-2.5 pt-px text-xs font-extrabold leading-none text-white"
               aria-label="Английская озвучка"
@@ -232,7 +234,7 @@ export default function GameCard({
               <MicrophoneIcon />
             </span>
           )}
-          {!russianVoice && !russianSubtitles && englishSubtitles && (
+          {!russianSubtitles && englishSubtitles && (
             <span
               className="inline-flex h-7 items-center justify-center gap-1.5 rounded-[7px] border border-[var(--line)] bg-[var(--paper)] px-2.5 pt-px text-xs font-extrabold leading-none text-[var(--text-muted)]"
               aria-label="Английские субтитры"
@@ -262,21 +264,22 @@ export default function GameCard({
         <div className="mt-3 flex min-h-6 flex-wrap items-baseline gap-x-2">
           {priceUnavailable ? (
             <span className="text-xs font-semibold text-[var(--text-muted)]">
-              Цена недоступна
+              Цена при выходе
             </span>
           ) : (
             <>
               <span className="text-[20px] font-extrabold leading-none tracking-[-0.045em] text-[var(--ink)] sm:text-[22px]">
-                {formatPrice(numericPrice)}
+                {formatPrice(numericPrice, rate)}
               </span>
               {hasDiscount && (
                 <span className="text-[15px] font-medium leading-none text-[#948e98] line-through sm:text-[16px]">
-                  {formatPrice(originalPrice)}
+                  {formatPrice(originalPrice, rate)}
                 </span>
               )}
             </>
           )}
         </div>
+
       </div>
     </article>
   );

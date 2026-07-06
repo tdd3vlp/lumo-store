@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useMemo } from "react";
 import { games } from "@/data/mockGames";
+import { useRegionRate } from "@/lib/pricing/context";
+import { formatPriceAsRubles } from "@/lib/pricing/rates";
 import { useStore } from "@/store/useStore";
 
 const GIFT_CARD_AMOUNTS = [
@@ -27,16 +29,13 @@ function getSuggestedCard(total: number) {
   };
 }
 
-function formatINR(value: number) {
-  return `₹${value.toLocaleString("en-IN")}`;
-}
-
 export default function CartSidebar() {
   const cart = useStore((state) => state.cart);
   const addToCart = useStore((state) => state.addToCart);
   const decreaseCartItem = useStore((state) => state.decreaseCartItem);
   const removeFromCart = useStore((state) => state.removeFromCart);
   const clearCart = useStore((state) => state.clearCart);
+  const tryRate = useRegionRate("TR");
 
   const total = useMemo(() => {
     return Math.round(
@@ -60,8 +59,8 @@ export default function CartSidebar() {
     if (exceeds || remainder < 1000) return [];
 
     return games
-      .filter((game) => game.price <= remainder && !cartIds.has(game.id))
-      .sort((a, b) => b.price - a.price)
+      .filter((game) => game.price != null && game.price <= remainder && !cartIds.has(game.id))
+      .sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
       .slice(0, 4);
   }, [remainder, exceeds, cartIds]);
 
@@ -110,7 +109,7 @@ export default function CartSidebar() {
                       {item.title}
                     </p>
                     <p className="mt-1 text-sm text-[#8f5cff]">
-                      {item.price != null ? formatINR(item.price) : "Цена недоступна"}
+                      {item.price != null ? formatPriceAsRubles(item.price, tryRate) : "Цена недоступна"}
                     </p>
                   </div>
 
@@ -171,7 +170,7 @@ export default function CartSidebar() {
             <div className="mb-3 flex items-center justify-between text-sm text-[#6a5a8d]">
               <span>Общая сумма</span>
               <span className="font-semibold text-[#2a1f44]">
-                {formatINR(total)}
+                {formatPriceAsRubles(total, tryRate)}
               </span>
             </div>
 
@@ -180,14 +179,14 @@ export default function CartSidebar() {
                 <div className="mb-3 flex items-center justify-between text-sm text-[#6a5a8d]">
                   <span>Подходящий вариант</span>
                   <span className="font-semibold text-[#2a1f44]">
-                    {formatINR(card)}
+                    {formatPriceAsRubles(card, tryRate)}
                   </span>
                 </div>
 
                 <div className="mb-4 flex items-center justify-between text-sm text-[#6a5a8d]">
                   <span>Останется после покупки</span>
                   <span className="font-semibold text-[#8f5cff]">
-                    {formatINR(remainder)}
+                    {formatPriceAsRubles(remainder, tryRate)}
                   </span>
                 </div>
               </>
@@ -213,7 +212,7 @@ export default function CartSidebar() {
                 На остаток можно взять
               </div>
               <h4 className="mb-4 text-base font-bold text-[#2a1f44]">
-                Ещё игры в пределах {formatINR(remainder)}
+                Ещё игры в пределах {formatPriceAsRubles(remainder, tryRate)}
               </h4>
 
               <div className="space-y-3">
@@ -235,7 +234,7 @@ export default function CartSidebar() {
                         {game.title}
                       </p>
                       <p className="mt-1 text-sm text-[#8f5cff]">
-                        {formatINR(game.price)}
+                        {game.price != null ? formatPriceAsRubles(game.price, tryRate) : "Цена при выходе"}
                       </p>
                     </div>
 

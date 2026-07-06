@@ -13,7 +13,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 3.74,
     releaseDate: "5/3/2026",
-    psStoreUrl: "https://store.playstation.com/en-in/product/UP1001-PPSA34299_00-WWE2K26MONNWEDIT",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/UP1001-PPSA34299_00-WWE2K26MONNWEDIT",
     editions: [
       { id: "standard", name: "Standard Edition", price: 7259, originalPrice: 10999 },
     ],
@@ -31,7 +31,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 3.35,
     releaseDate: "25/9/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/UP0006-PPSA27360_00-26STANDARDBUNDLE",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/UP0006-PPSA27360_00-26STANDARDBUNDLE",
     editions: [
       { id: "standard", name: "Standard Edition", price: 999, originalPrice: 4999 },
     ],
@@ -49,7 +49,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.07,
     releaseDate: "10/10/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/UP0006-PPSA19534_00-SANTIAGODELUXE00",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/UP0006-PPSA19534_00-SANTIAGODELUXE00",
     editions: [
       { id: "standard", name: "Standard Edition", price: 4874, originalPrice: 7499 },
     ],
@@ -67,7 +67,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.53,
     releaseDate: "6/6/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1672-PPSA10621_00-0249329744581606",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1672-PPSA10621_00-0249329744581606",
     editions: [
       { id: "standard", name: "Standard Edition", price: 3704, originalPrice: 5699 },
     ],
@@ -85,7 +85,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: null,
     releaseDate: "28/10/2018",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1004-CUSA08519_00-RDR2ULTMEDTNBUND",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1004-CUSA08519_00-RDR2ULTMEDTNBUND",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1539, originalPrice: 7699 },
     ],
@@ -103,7 +103,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.54,
     releaseDate: "17/7/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/JP6400-PPSA24938_00-0605130831842075",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/JP6400-PPSA24938_00-0605130831842075",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1747, originalPrice: 2497 },
     ],
@@ -121,7 +121,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.5,
     releaseDate: "30/6/2022",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP8254-CUSA20469_00-4979936889641357",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP8254-CUSA20469_00-4979936889641357",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1348, originalPrice: 2247 },
     ],
@@ -139,7 +139,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.67,
     releaseDate: "28/2/2024",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0082-PPSA08668_00-0783148264580163",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0082-PPSA08668_00-0783148264580163",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1399, originalPrice: 3499 },
     ],
@@ -157,7 +157,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.53,
     releaseDate: "11/11/2020",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP9000-PPSA01417_00-MARVELSSMMDDE000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP9000-PPSA01417_00-MARVELSSMMDDE000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 2499, originalPrice: 4999 },
     ],
@@ -175,7 +175,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 3.72,
     releaseDate: "29/6/2020",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1003-CUSA13094_00-WOLFALTHISTORYRP",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1003-CUSA13094_00-WOLFALTHISTORYRP",
     editions: [
       { id: "standard", name: "Standard Edition", price: 799, originalPrice: 3999 },
     ],
@@ -193,7 +193,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.71,
     releaseDate: "14/7/2015",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP9000-CUSA01715_00-0000GODOFWAR3PS4",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP9000-CUSA01715_00-0000GODOFWAR3PS4",
     editions: [
       { id: "standard", name: "Standard Edition", price: 749, originalPrice: 1499 },
     ],
@@ -211,7 +211,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.16,
     releaseDate: "7/12/2021",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP8198-PPSA02575_00-6092745508330153",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP8198-PPSA02575_00-6092745508330153",
     editions: [
       { id: "standard", name: "Standard Edition", price: 594, originalPrice: 1748 },
     ],
@@ -229,7 +229,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.41,
     releaseDate: "13/6/2022",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0102-PPSA03953_00-BHB0000000000002",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0102-PPSA03953_00-BHB0000000000002",
     editions: [
       { id: "standard", name: "Standard Edition", price: 699, originalPrice: 3499 },
     ],
@@ -247,7 +247,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.74,
     releaseDate: "11/11/2021",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1003-PPSA03747_00-TESVSKYRIM000000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1003-PPSA03747_00-TESVSKYRIM000000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 624, originalPrice: 2499 },
     ],
@@ -265,7 +265,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 3.83,
     releaseDate: "3/2/2026",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP4432-PPSA13699_00-EAT0020000000000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP4432-PPSA13699_00-EAT0020000000000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 2705, originalPrice: 4162 },
     ],
@@ -283,7 +283,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.62,
     releaseDate: "6/10/2015",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP9000-CUSA02343_00-UNCHARTEDTRILOGY",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP9000-CUSA02343_00-UNCHARTEDTRILOGY",
     editions: [
       { id: "standard", name: "Standard Edition", price: 449, originalPrice: 1499 },
     ],
@@ -301,7 +301,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.49,
     releaseDate: "12/8/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP6311-PPSA25991_00-0714721000209651",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP6311-PPSA25991_00-0714721000209651",
     editions: [
       { id: "standard", name: "Standard Edition", price: 2199, originalPrice: 4399 },
     ],
@@ -319,7 +319,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 3.94,
     releaseDate: "24/9/2024",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1018-PPSA07571_00-MKONEKR000EXPANS",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1018-PPSA07571_00-MKONEKR000EXPANS",
     editions: [
       { id: "standard", name: "Standard Edition", price: 832, originalPrice: 4162 },
     ],
@@ -337,7 +337,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 3.91,
     releaseDate: "13/11/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0002-PPSA07950_00-CODBO7CROSSGEN01",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0002-PPSA07950_00-CODBO7CROSSGEN01",
     editions: [
       { id: "standard", name: "Standard Edition", price: 2999, originalPrice: 5999 },
     ],
@@ -355,7 +355,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 3.72,
     releaseDate: "25/7/2019",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1003-CUSA13094_00-YNGBLD0000000000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1003-CUSA13094_00-YNGBLD0000000000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 374, originalPrice: 1499 },
     ],
@@ -373,7 +373,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.04,
     releaseDate: "22/10/2020",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0006-CUSA08670_00-BFVDEFINIEDITION",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0006-CUSA08670_00-BFVDEFINIEDITION",
     editions: [
       { id: "standard", name: "Standard Edition", price: 699, originalPrice: 3499 },
     ],
@@ -391,7 +391,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.64,
     releaseDate: "4/7/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1018-CUSA02010_00-DLCLASSICEDITION",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1018-CUSA02010_00-DLCLASSICEDITION",
     editions: [
       { id: "standard", name: "Standard Edition", price: 283, originalPrice: 1415 },
     ],
@@ -409,7 +409,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.18,
     releaseDate: "11/4/2023",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP5205-PPSA08069_00-SH3THEAWAKENEDUA",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP5205-PPSA08069_00-SH3THEAWAKENEDUA",
     editions: [
       { id: "standard", name: "Standard Edition", price: 333, originalPrice: 3330 },
     ],
@@ -427,7 +427,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 3.36,
     releaseDate: "16/9/2024",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP7780-PPSA20515_00-0377614319017269",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP7780-PPSA20515_00-0377614319017269",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1665, originalPrice: 3330 },
     ],
@@ -445,7 +445,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.37,
     releaseDate: "5/1/2017",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0001-CUSA04294_00-WD2FULLGAME00000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0001-CUSA04294_00-WD2FULLGAME00000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 449, originalPrice: 449 },
     ],
@@ -463,7 +463,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.65,
     releaseDate: "26/7/2023",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP8198-PPSA02575_00-0255445934367603",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP8198-PPSA02575_00-0255445934367603",
     editions: [
       { id: "standard", name: "Standard Edition", price: 212, originalPrice: 624 },
     ],
@@ -481,7 +481,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.59,
     releaseDate: "3/7/2023",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP4114-PPSA12507_00-4397472491277281",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP4114-PPSA12507_00-4397472491277281",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1348, originalPrice: 2997 },
     ],
@@ -499,7 +499,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.18,
     releaseDate: "7/11/2019",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0006-CUSA15090_00-NEEDFORSPEED2020",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0006-CUSA15090_00-NEEDFORSPEED2020",
     editions: [
       { id: "standard", name: "Standard Edition", price: 399, originalPrice: 3999 },
     ],
@@ -517,7 +517,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.19,
     releaseDate: "27/10/2021",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0001-PPSA01372_00-MADSTANDARTED000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0001-PPSA01372_00-MADSTANDARTED000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 699, originalPrice: 2799 },
     ],
@@ -535,7 +535,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: null,
     releaseDate: "17/7/2024",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP2006-PPSA17296_00-ALUPROPACK00000S",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP2006-PPSA17296_00-ALUPROPACK00000S",
     editions: [
       { id: "standard", name: "Standard Edition", price: 4995, originalPrice: 8325 },
     ],
@@ -553,7 +553,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.02,
     releaseDate: "9/11/2017",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0006-CUSA05986_00-NFS1800000000001",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0006-CUSA05986_00-NFS1800000000001",
     editions: [
       { id: "standard", name: "Standard Edition", price: 299, originalPrice: 1499 },
     ],
@@ -571,7 +571,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.3,
     releaseDate: "13/2/2026",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP4389-PPSA23372_00-ANIMALGAMEGLOBAL",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP4389-PPSA23372_00-ANIMALGAMEGLOBAL",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1999, originalPrice: 1999 },
     ],
@@ -589,7 +589,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.0,
     releaseDate: "4/11/2021",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0002-CUSA29092_00-CODVSTANDARD0001",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0002-CUSA29092_00-CODVSTANDARD0001",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1599, originalPrice: 3999 },
     ],
@@ -607,7 +607,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.37,
     releaseDate: "29/5/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EB0474-PPSA18346_00-0378150337949493",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EB0474-PPSA18346_00-0378150337949493",
     editions: [
       { id: "standard", name: "Standard Edition", price: 549, originalPrice: 1099 },
     ],
@@ -625,7 +625,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.41,
     releaseDate: "9/11/2021",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP2377-PPSA03286_00-JWEVOLUTION2AAAA",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP2377-PPSA03286_00-JWEVOLUTION2AAAA",
     editions: [
       { id: "standard", name: "Standard Edition", price: 874, originalPrice: 3499 },
     ],
@@ -643,7 +643,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.43,
     releaseDate: "10/3/2026",
-    psStoreUrl: "https://store.playstation.com/en-in/product/JP6576-PPSA24855_00-0430118369904997",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/JP6576-PPSA24855_00-0430118369904997",
     editions: [
       { id: "standard", name: "Standard Edition", price: 311, originalPrice: 415 },
     ],
@@ -661,7 +661,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: null,
     releaseDate: "30/8/2022",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP3367-PPSA02049_00-CHAPTERORION0000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP3367-PPSA02049_00-CHAPTERORION0000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 698, originalPrice: 998 },
     ],
@@ -679,7 +679,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.39,
     releaseDate: "16/12/2014",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1003-CUSA00375_00-THEEVILWITHINROW",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1003-CUSA00375_00-THEEVILWITHINROW",
     editions: [
       { id: "standard", name: "Standard Edition", price: 374, originalPrice: 1499 },
     ],
@@ -697,7 +697,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: null,
     releaseDate: "18/6/2021",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP4062-PPSA01749_00-METROEXODUSEPGN9",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP4062-PPSA01749_00-METROEXODUSEPGN9",
     editions: [
       { id: "standard", name: "Standard Edition", price: 312, originalPrice: 1248 },
     ],
@@ -715,7 +715,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: null,
     releaseDate: "9/8/2016",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1628-CUSA05760_00-SLES535390000001",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1628-CUSA05760_00-SLES535390000001",
     editions: [
       { id: "standard", name: "Standard Edition", price: 168, originalPrice: 1123 },
     ],
@@ -733,7 +733,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: null,
     releaseDate: "14/7/2016",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1965-CUSA05528_00-NWZ0100000000000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1965-CUSA05528_00-NWZ0100000000000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 665, originalPrice: 832 },
     ],
@@ -751,7 +751,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: true,
     rating: 4.16,
     releaseDate: "27/2/2026",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP2696-CUSA42709_00-0917085767663141",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP2696-CUSA42709_00-0917085767663141",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1602, originalPrice: 2913 },
     ],
@@ -769,7 +769,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: null,
     releaseDate: "14/7/2016",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1965-CUSA05528_00-NWZ1100000000000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1965-CUSA05528_00-NWZ1100000000000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 6660, originalPrice: 8325 },
     ],
@@ -787,7 +787,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.37,
     releaseDate: "13/10/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP5133-PPSA33006_00-12EXQUISITEWORDS",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP5133-PPSA33006_00-12EXQUISITEWORDS",
     editions: [
       { id: "standard", name: "Standard Edition", price: 209, originalPrice: 299 },
     ],
@@ -805,7 +805,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.18,
     releaseDate: "27/4/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP5133-PPSA29701_00-FANTASTICSEARCH1",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP5133-PPSA29701_00-FANTASTICSEARCH1",
     editions: [
       { id: "standard", name: "Standard Edition", price: 179, originalPrice: 299 },
     ],
@@ -823,7 +823,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.84,
     releaseDate: "21/9/2020",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP0177-CUSA19620_00-BSTUBCUSA1962000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP0177-CUSA19620_00-BSTUBCUSA1962000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 874, originalPrice: 3499 },
     ],
@@ -841,7 +841,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: null,
     releaseDate: "18/5/2017",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1018-CUSA05459_00-PREMIUMCURRENCY4",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1018-CUSA05459_00-PREMIUMCURRENCY4",
     editions: [
       { id: "standard", name: "Standard Edition", price: 832, originalPrice: 4162 },
     ],
@@ -859,7 +859,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 3.46,
     releaseDate: "28/2/2025",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP5098-PPSA10875_00-0188506551186733",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP5098-PPSA10875_00-0188506551186733",
     editions: [
       { id: "standard", name: "Standard Edition", price: 349, originalPrice: 699 },
     ],
@@ -877,7 +877,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: 4.25,
     releaseDate: "10/3/2026",
-    psStoreUrl: "https://store.playstation.com/en-in/product/UP2005-PPSA35249_00-1CATLINEGAME0000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/UP2005-PPSA35249_00-1CATLINEGAME0000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 290, originalPrice: 415 },
     ],
@@ -895,7 +895,7 @@ export const psnDeals: Game[] = [
     russianSubtitles: false,
     rating: null,
     releaseDate: "14/7/2016",
-    psStoreUrl: "https://store.playstation.com/en-in/product/EP1965-CUSA05528_00-NWZ0200000000000",
+    psStoreUrl: "https://store.playstation.com/en-tr/product/EP1965-CUSA05528_00-NWZ0200000000000",
     editions: [
       { id: "standard", name: "Standard Edition", price: 1331, originalPrice: 1664 },
     ],
