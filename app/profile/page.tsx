@@ -171,17 +171,25 @@ export default async function ProfilePage() {
               Админка
             </p>
             <h2 className="mt-2 text-2xl font-bold text-[var(--ink)]">
-              Управление курсами
+              Управление магазином
             </h2>
             <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-              Измени курс TRY к рублю и проверь превью цен.
+              Курсы валют, импорт каталога из PS Store.
             </p>
-            <Link
-              href="/admin/pricing"
-              className="mt-5 inline-flex rounded-[13px] bg-[var(--signal)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)]"
-            >
-              Открыть курсы
-            </Link>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link
+                href="/admin/pricing"
+                className="inline-flex rounded-[13px] bg-[var(--signal)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)]"
+              >
+                Курсы регионов
+              </Link>
+              <Link
+                href="/admin/psn-import"
+                className="inline-flex rounded-[13px] border border-[var(--line-strong)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
+              >
+                Импорт PS Store
+              </Link>
+            </div>
           </section>
         )}
 

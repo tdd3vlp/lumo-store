@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import Header from "@/components/Header";
 import { ALLOWED_STORE_PREFIXES, WELL_KNOWN_COLLECTIONS } from "@/lib/psn/types";
@@ -266,17 +265,9 @@ export default function PsnImportPage() {
         <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
           Администрирование
         </p>
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="font-[family-name:var(--font-unbounded)] text-3xl font-bold tracking-[-0.04em] text-[var(--ink)] md:text-4xl">
-            Импорт PS Store
-          </h1>
-          <Link
-            href="/admin/pricing"
-            className="mt-1 shrink-0 rounded-[10px] border border-[var(--line-strong)] px-3 py-1.5 text-xs font-bold text-[var(--text-muted)] transition hover:text-[var(--ink)]"
-          >
-            ← Курсы регионов
-          </Link>
-        </div>
+        <h1 className="font-[family-name:var(--font-unbounded)] text-3xl font-bold tracking-[-0.04em] text-[var(--ink)] md:text-4xl">
+          Импорт PS Store
+        </h1>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">
           {/* Form */}
