@@ -8,7 +8,7 @@ import type { Game } from "@/data/mockGames";
 import { inferEditionName } from "@/lib/catalog/editions";
 import { useRegionRate } from "@/lib/pricing/context";
 import { formatPriceAsRubles } from "@/lib/pricing/rates";
-import { useStore } from "@/store/useStore";
+import { editionCartId, useStore } from "@/store/useStore";
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
@@ -151,7 +151,7 @@ export default function GamePageClient({ game }: { game: Game }) {
   const selectedEditionIndex = game.editions.findIndex(
     (edition) => edition.id === selectedEdition.id,
   );
-  const cartItemId = game.id * 100 + selectedEditionIndex + 1;
+  const cartItemId = editionCartId(game.id, selectedEditionIndex);
   const gameRegion = game.region ?? "TR";
   const cartItem = cart.find(
     (item) =>

@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import { games } from "@/data/mockGames";
 import { useRegionRate } from "@/lib/pricing/context";
 import { formatPriceAsRubles } from "@/lib/pricing/rates";
-import { useStore } from "@/store/useStore";
+import { editionCartId, useStore } from "@/store/useStore";
 
 export default function FavoritesPage() {
   const favorites = useStore((state) => state.favorites);
@@ -44,7 +44,9 @@ export default function FavoritesPage() {
         ) : (
           <div className="space-y-4">
             {favoriteGames.map((game) => {
-              const isInCart = cart.some((item) => item.id === game.id);
+              const isInCart = cart.some(
+                (item) => (item.gameId ?? item.id) === game.id,
+              );
 
               return (
                 <div
@@ -101,7 +103,8 @@ export default function FavoritesPage() {
                         <button
                           onClick={() =>
                             addToCart({
-                              id: game.id,
+                              id: editionCartId(game.id),
+                              gameId: game.id,
                               title: game.title,
                               price: game.price,
                               image: game.image,

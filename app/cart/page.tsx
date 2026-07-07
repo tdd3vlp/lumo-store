@@ -16,7 +16,7 @@ import {
 } from "@/lib/gift-cards/regions";
 import { useRegionRate } from "@/lib/pricing/context";
 import { formatPriceAsRubles } from "@/lib/pricing/rates";
-import { useStore, type StoreRegion } from "@/store/useStore";
+import { editionCartId, useStore, type StoreRegion } from "@/store/useStore";
 
 type CatalogDenomination = GiftCardOption & {
   region: StoreRegion;
@@ -508,7 +508,8 @@ export default function CartPage() {
                               type="button"
                               onClick={() =>
                                 addToCart({
-                                  id: game.id,
+                                  id: editionCartId(game.id),
+                                  gameId: game.id,
                                   region: activeRegion,
                                   title: game.title,
                                   price: game.price,

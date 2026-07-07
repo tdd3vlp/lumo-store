@@ -18,6 +18,16 @@ export type CartItem = {
 
 export type StoreRegion = "TR";
 
+// A cart line is keyed by (game, edition). This id encodes both so different
+// editions of the same game stay distinct lines, while every entry point that
+// adds the *same* game+edition collapses onto one line. editionIndex 0 is the
+// default/standard edition used by all quick-add surfaces (cards, favorites,
+// "fits the remainder" suggestions); the game page passes the selected edition's
+// index. Read `gameId` (not `id`) to answer "is this game already in the cart".
+export function editionCartId(gameId: number, editionIndex = 0): number {
+  return gameId * 100 + editionIndex + 1;
+}
+
 type AddToCartPayload = {
   id: number;
   gameId?: number;

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRegionRate } from "@/lib/pricing/context";
 import { formatPriceAsRubles } from "@/lib/pricing/rates";
-import { useStore, type StoreRegion } from "@/store/useStore";
+import { editionCartId, useStore, type StoreRegion } from "@/store/useStore";
 
 type Props = {
   id: number;
@@ -132,7 +132,7 @@ export default function GameCard({
   const priceUnavailable = numericPrice === null;
   const isFavorite = favorites.includes(id);
   const isInCart = cart.some(
-    (item) => item.id === id && (item.region ?? "TR") === region,
+    (item) => (item.gameId ?? item.id) === id && (item.region ?? "TR") === region,
   );
   const hasDiscount =
     numericPrice !== null &&
@@ -145,7 +145,7 @@ export default function GameCard({
       : null;
   const handleAddToCart = () => {
     if (numericPrice === null) return;
-    addToCart({ id, gameId: id, region, title, price: numericPrice, originalPrice, image });
+    addToCart({ id: editionCartId(id), gameId: id, region, title, price: numericPrice, originalPrice, image });
   };
 
   return (
