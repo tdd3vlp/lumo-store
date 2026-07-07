@@ -4,7 +4,9 @@ import type { NextRequest } from "next/server";
 // VK ID returns a `device_id` on the OAuth callback that its token endpoint
 // then requires. Auth.js does not forward it, so we copy it into a request
 // header that the provider's customFetch reads during the token exchange.
-export function middleware(request: NextRequest) {
+// (Renamed from `middleware` to `proxy` — the Next.js 16 convention; behavior
+// is identical.)
+export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname === "/api/auth/callback/vk") {
     const deviceId = request.nextUrl.searchParams.get("device_id");
     if (deviceId) {

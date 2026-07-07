@@ -102,6 +102,12 @@ export default function PsnImportPage() {
   });
 
   useEffect(() => {
+    // One-shot hydration of the form defaults from localStorage, after mount.
+    // This has to be an effect rather than lazy useState init: the inputs are
+    // controlled and server-rendered, so reading localStorage during init would
+    // produce a hydration mismatch. The set-state-in-effect rule targets
+    // cascading render loops, which a single mount-time seed is not.
+    /* eslint-disable react-hooks/set-state-in-effect */
     const all: PresetKey[] = ["new_releases", "preorders", "collections"];
     setPresetUrls({
       new_releases: localStorage.getItem(lsUrlKey("new_releases")) ?? "",
@@ -119,7 +125,7 @@ export default function PsnImportPage() {
         return acc;
       }, {} as Record<PresetKey, string>),
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   const LOCALE_EXAMPLE: Partial<Record<PsnRegion, string>> = {

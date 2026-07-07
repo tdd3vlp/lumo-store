@@ -23,7 +23,7 @@ interface VkIdProfile {
 //  - PKCE is mandatory; we use PKCE-only because VK corrupts the Auth.js JWE
 //    `state` value (it strips the dots the encrypted token needs)
 //  - the token exchange requires the `device_id` VK returns on the callback,
-//    which the middleware bridges to us via the `x-vk-device-id` header
+//    which the proxy bridges to us via the `x-vk-device-id` header
 //  - user_info is a POST with client_id + access_token in the body
 function VkId(): OAuthConfig<VkIdProfile> {
   return {
@@ -97,7 +97,7 @@ function VkId(): OAuthConfig<VkIdProfile> {
             : input.url;
 
       // Inject VK's device_id (required by the token endpoint) into the
-      // grant request body. The middleware forwards it as a request header.
+      // grant request body. The proxy forwards it as a request header.
       if (
         url.startsWith("https://id.vk.com/oauth2/auth") &&
         init?.body instanceof URLSearchParams &&
