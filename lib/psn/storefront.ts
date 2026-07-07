@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { createDatabaseClient } from "@/lib/database";
 import type { Game } from "@/data/mockGames";
 import type { PsnRegion } from "./types";
@@ -7,6 +8,13 @@ import { FEATURED_PROMOS } from "@/lib/featured-promo";
 import { cleanGameTitle, inferEditionName } from "@/lib/catalog/editions";
 
 const sql = createDatabaseClient(3);
+
+// The storefront is read-only and the catalog only changes on the import cadence
+// (dry-run → commit), so serving it from the Data Cache for a few minutes avoids
+// re-scanning the region on every request while the page stays `force-dynamic`.
+// `revalidateTag(STOREFRONT_CACHE_TAG)` from a route handler can force a refresh.
+const STOREFRONT_CACHE_TTL = 300; // seconds
+const STOREFRONT_CACHE_TAG = "psn-storefront";
 
 type ProductRow = {
   psn_product_id: string;
@@ -34,12 +42,25 @@ type ProductRow = {
   screenshot_urls: string[];
 };
 
+// Maps a PS Store product id to the numeric id used in /game/<id> URLs, the
+// cart, and favorites. getPsnGameById reverse-maps this number back to a product
+// by re-hashing every row, so a collision would resolve the URL to the WRONG
+// game. Two independent 32-bit rolling hashes are combined into a ~44-bit value,
+// dropping the collision probability to ≈N²/2^45 (negligible even for tens of
+// thousands of products) versus the old single 32-bit hash (~0.5% at N=5000).
+// Constraints: kept ≥ 10000 to clear the static mock-catalog ids (max ~2050),
+// and < 2^44 so editionCartId()'s ×100 stays within Number.MAX_SAFE_INTEGER.
 export function stableId(psnProductId: string): number {
-  let h = 0;
+  let h1 = 0x811c9dc5; // FNV-1a seed
+  let h2 = 0x9e3779b9; // golden-ratio seed
   for (let i = 0; i < psnProductId.length; i++) {
-    h = (Math.imul(31, h) + psnProductId.charCodeAt(i)) | 0;
+    const c = psnProductId.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = Math.imul((h2 + c) | 0, 0x85ebca77);
   }
-  return Math.abs(h) + 10000;
+  const hi = (h1 >>> 20) & 0xfff; // 12 high bits
+  const lo = h2 >>> 0; // 32 bits
+  return 10000 + hi * 0x1_0000_0000 + lo;
 }
 
 function rowToGame(region: PsnRegion, r: ProductRow): Game {
@@ -175,13 +196,20 @@ function dedupByTitle(rows: ProductRow[]): ProductRow[] {
   });
 }
 
-export async function getPsnGamesForRegion(region: PsnRegion): Promise<Game[]> {
-  const rows = await saleProductSelect(region);
-  return dedupByTitle(rows).map((row) => rowToGame(region, row));
-}
+export const getPsnGamesForRegion = unstable_cache(
+  async (region: PsnRegion): Promise<Game[]> => {
+    const rows = await saleProductSelect(region);
+    return dedupByTitle(rows).map((row) => rowToGame(region, row));
+  },
+  ["psn-games-for-region"],
+  { revalidate: STOREFRONT_CACHE_TTL, tags: [STOREFRONT_CACHE_TAG] },
+);
 
-async function getAllProductsForRegion(region: PsnRegion): Promise<ProductRow[]> {
-  return sql<ProductRow[]>`
+// Cached once per region: a single scan powers every game-detail page (and its
+// sibling-edition lookup) for the TTL window instead of one scan per view.
+const getAllProductsForRegion = unstable_cache(
+  async (region: PsnRegion): Promise<ProductRow[]> =>
+    sql<ProductRow[]>`
     SELECT
       p.psn_product_id,
       p.np_title_id,
@@ -215,21 +243,19 @@ async function getAllProductsForRegion(region: PsnRegion): Promise<ProductRow[]>
       LIMIT  1
     ) s ON true
     WHERE p.region = ${region}
-  `;
-}
+  `,
+  ["psn-all-products-for-region"],
+  { revalidate: STOREFRONT_CACHE_TTL, tags: [STOREFRONT_CACHE_TAG] },
+);
 
 export async function getPsnGameById(id: number): Promise<Game | null> {
-  // Fetch both in parallel: saleRows for accurate discount prices, allRows for
-  // non-sale products (pre-orders, new releases) and for sibling editions lookup.
-  const [saleRows, allRows] = await Promise.all([
-    saleProductSelect("TR"),
-    getAllProductsForRegion("TR"),
-  ]);
+  // A single region scan covers everything: getAllProductsForRegion already joins
+  // the latest price snapshot (price_minor/original_price_minor), so it yields the
+  // same prices saleProductSelect would — including pre-orders and new releases —
+  // plus the sibling rows needed for edition lookup below. No second query needed.
+  const allRows = await getAllProductsForRegion("TR");
 
-  // Prefer the sale row (has confirmed price_minor < original_price_minor).
-  const row =
-    saleRows.find((r) => stableId(r.psn_product_id) === id) ??
-    allRows.find((r) => stableId(r.psn_product_id) === id);
+  const row = allRows.find((r) => stableId(r.psn_product_id) === id);
 
   if (!row) return null;
 
@@ -316,9 +342,8 @@ export type CollectionSection = {
   games: Game[];
 };
 
-export async function getCollectionsForRegion(
-  region: PsnRegion,
-): Promise<CollectionSection[]> {
+export const getCollectionsForRegion = unstable_cache(
+  async (region: PsnRegion): Promise<CollectionSection[]> => {
   type CollectionRow = {
     collection_id: string;
     name_ru: string;
@@ -385,7 +410,10 @@ export async function getCollectionsForRegion(
   }
 
   return [...byCollection.values()];
-}
+  },
+  ["psn-collections-for-region"],
+  { revalidate: STOREFRONT_CACHE_TTL, tags: [STOREFRONT_CACHE_TAG] },
+);
 
 export { WELL_KNOWN_COLLECTIONS };
 
@@ -397,9 +425,8 @@ export type FeaturedPromoResult = {
   ctaLabel: string;
 };
 
-export async function getFeaturedPromoForRegion(
-  region: PsnRegion,
-): Promise<FeaturedPromoResult | null> {
+export const getFeaturedPromoForRegion = unstable_cache(
+  async (region: PsnRegion): Promise<FeaturedPromoResult | null> => {
   const promo = FEATURED_PROMOS.find((p) => p.region === region);
   if (!promo) return null;
 
@@ -446,4 +473,7 @@ export async function getFeaturedPromoForRegion(
     releaseLabel: promo.releaseLabel,
     ctaLabel: promo.ctaLabel,
   };
-}
+  },
+  ["psn-featured-promo-for-region"],
+  { revalidate: STOREFRONT_CACHE_TTL, tags: [STOREFRONT_CACHE_TAG] },
+);
