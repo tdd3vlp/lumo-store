@@ -4,6 +4,7 @@ import type { Game } from "@/data/mockGames";
 import type { PsnRegion } from "./types";
 import { WELL_KNOWN_COLLECTIONS, LOCALE_BY_REGION } from "./types";
 import { FEATURED_PROMOS } from "@/lib/featured-promo";
+import { cleanGameTitle, inferEditionName } from "@/lib/catalog/editions";
 
 const sql = createDatabaseClient(3);
 
@@ -26,6 +27,7 @@ type ProductRow = {
   description_ru_text: string | null;
   description_ai_ru_text: string | null;
   description_ai_summary_ru: string | null;
+  description_ai_full_ru: string | null;
   description_original_text: string | null;
   sales_rank: number | null;
   sale_end_date: string | null;
@@ -47,13 +49,25 @@ function rowToGame(region: PsnRegion, r: ProductRow): Game {
       ? Math.round(r.original_price_minor / 100)
       : price;
 
-  const releaseDate = r.release_date
-    ? new Date(r.release_date).toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
+  // postgres.js parses `date` columns as new Date("YYYY-MM-DDT00:00:00") — no Z,
+  // so it is LOCAL midnight, not UTC. Use local-time getters (getFullYear etc.)
+  // to extract the calendar date the DB actually stored, regardless of server TZ.
+  const rawDate = r.release_date as unknown;
+  let ymd: [number, number, number] | null = null;
+  if (rawDate instanceof Date) {
+    ymd = [rawDate.getFullYear(), rawDate.getMonth() + 1, rawDate.getDate()];
+  } else if (typeof rawDate === "string" && rawDate) {
+    const m = rawDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) ymd = [+m[1], +m[2], +m[3]];
+  }
+  const releaseDate = ymd
+    ? new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" })
+        .format(new Date(ymd[0], ymd[1] - 1, ymd[2]))
     : "";
+  const todayYmd = (() => { const t = new Date(); return [t.getFullYear(), t.getMonth() + 1, t.getDate()] as [number, number, number]; })();
+  const isPreorder = ymd
+    ? ymd[0] > todayYmd[0] || (ymd[0] === todayYmd[0] && ymd[1] > todayYmd[1]) || (ymd[0] === todayYmd[0] && ymd[1] === todayYmd[1] && ymd[2] > todayYmd[2])
+    : false;
 
   const hasLanguage = (values: string[], language: "ru" | "en") =>
     values.some((value) => {
@@ -70,11 +84,16 @@ function rowToGame(region: PsnRegion, r: ProductRow): Game {
   return {
     id: stableId(r.psn_product_id),
     region: region as "TR",
-    title: r.title,
+    title: cleanGameTitle(r.title),
     image: r.image_url ?? "",
     price,
     originalPrice,
-    description: r.description_ru_text ?? r.description_ai_ru_text ?? r.description_original_text ?? "",
+    description:
+      r.description_ai_full_ru ??
+      r.description_ru_text ??
+      r.description_ai_ru_text ??
+      r.description_original_text ??
+      "",
     summaryRu: r.description_ai_summary_ru ?? null,
     platform: (r.platforms ?? []).join(", ") || "PS5",
     russianVoice: hasLanguage(voiceLanguages, "ru"),
@@ -83,6 +102,7 @@ function rowToGame(region: PsnRegion, r: ProductRow): Game {
     englishSubtitles: hasLanguage(subtitleLanguages, "en"),
     rating: r.rating != null ? parseFloat(String(r.rating)) : null,
     releaseDate,
+    isPreorder,
     psStoreUrl: `https://store.playstation.com/${LOCALE_BY_REGION[region]}/product/${r.psn_product_id}`,
     editions: [{ id: "standard", name: r.title, price, originalPrice }],
     screenshots: r.screenshot_urls ?? [],
@@ -90,9 +110,14 @@ function rowToGame(region: PsnRegion, r: ProductRow): Game {
     publisher: r.publisher,
     ratingsCount: r.ratings_count,
     salesRank: r.sales_rank,
-    saleEndDate: r.sale_end_date
-      ? new Date(r.sale_end_date).toISOString().slice(0, 10)
-      : null,
+    saleEndDate: (() => {
+      const raw = r.sale_end_date as unknown;
+      if (!raw) return null;
+      if (raw instanceof Date)
+        return `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, "0")}-${String(raw.getDate()).padStart(2, "0")}`;
+      const m = String(raw).match(/^(\d{4}-\d{2}-\d{2})/);
+      return m ? m[1] : null;
+    })(),
   };
 }
 
@@ -115,6 +140,7 @@ function saleProductSelect(region: PsnRegion) {
       p.description_ru_text,
       p.description_ai_ru_text,
       p.description_ai_summary_ru,
+      p.description_ai_full_ru,
       p.description_original_text,
       p.sales_rank,
       p.sale_end_date,
@@ -173,6 +199,7 @@ async function getAllProductsForRegion(region: PsnRegion): Promise<ProductRow[]>
       p.description_ru_text,
       p.description_ai_ru_text,
       p.description_ai_summary_ru,
+      p.description_ai_full_ru,
       p.description_original_text,
       p.sales_rank,
       p.sale_end_date,
@@ -219,15 +246,62 @@ export async function getPsnGameById(id: number): Promise<Game | null> {
       );
 
     if (siblings.length > 1) {
-      game.editions = siblings.map((r) => ({
-        id: String(stableId(r.psn_product_id)),
-        name: r.title,
-        price: r.price_minor != null ? Math.round(r.price_minor / 100) : null,
-        originalPrice:
-          r.original_price_minor != null
-            ? Math.round(r.original_price_minor / 100)
-            : null,
-      }));
+      // Exclude upgrade/DLC products — they require owning another edition first.
+      const standalone = siblings.filter(
+        (r) => !/\bupgrade\b/i.test(r.title),
+      );
+      const candidates = standalone.length >= 1 ? standalone : siblings;
+
+      // Sony sometimes uses the same base title for all editions (e.g. Wolverine
+      // Standard and Digital Deluxe both titled "Marvel's Wolverine"). In that case
+      // inferEditionName() falls back to "Standard Edition" for both. We recover
+      // the real edition type from the psn_product_id suffix (e.g. "WOLVERINEDELUXE0").
+      const labelForRow = (r: ProductRow): string => {
+        const fromTitle = inferEditionName(r.title);
+        if (fromTitle !== "Standard Edition") return fromTitle;
+        const suffix = (r.psn_product_id.split("-").pop() ?? "").toUpperCase();
+        if (/DELUXE/.test(suffix)) return "Digital Deluxe Edition";
+        if (/ULTIMATE/.test(suffix)) return "Ultimate Edition";
+        if (/PREMIUM/.test(suffix)) return "Premium Edition";
+        if (/COMPLETE/.test(suffix)) return "Complete Edition";
+        if (/GOLD/.test(suffix)) return "Gold Edition";
+        if (/DEFINITIVE/.test(suffix)) return "Definitive Edition";
+        return "Standard Edition";
+      };
+
+      // Dedup: for each resolved label keep the product that has a price.
+      const byLabel = new Map<string, ProductRow>();
+      for (const r of candidates) {
+        const label = labelForRow(r);
+        const prev = byLabel.get(label);
+        if (!prev || (r.price_minor !== null && prev.price_minor === null)) {
+          byLabel.set(label, r);
+        }
+      }
+
+      const deduped = [...byLabel.values()].sort(
+        (a, b) =>
+          (a.price_minor ?? Number.MAX_SAFE_INTEGER) -
+          (b.price_minor ?? Number.MAX_SAFE_INTEGER),
+      );
+
+      if (deduped.length > 0) {
+        game.editions = deduped.map((r) => {
+          const fromTitle = inferEditionName(r.title);
+          const label = fromTitle !== "Standard Edition" ? undefined : labelForRow(r) !== "Standard Edition" ? labelForRow(r) : undefined;
+          return {
+            id: String(stableId(r.psn_product_id)),
+            name: r.title,
+            ...(label ? { label } : {}),
+            price: r.price_minor != null ? Math.round(r.price_minor / 100) : null,
+            originalPrice:
+              r.original_price_minor != null
+                ? Math.round(r.original_price_minor / 100)
+                : null,
+            image: r.image_url ?? null,
+          };
+        });
+      }
     }
   }
 
@@ -270,6 +344,7 @@ export async function getCollectionsForRegion(
       p.description_ru_text,
       p.description_ai_ru_text,
       p.description_ai_summary_ru,
+      p.description_ai_full_ru,
       p.description_original_text,
       p.sales_rank,
       p.sale_end_date,
@@ -345,6 +420,7 @@ export async function getFeaturedPromoForRegion(
       p.description_ru_text,
       p.description_ai_ru_text,
       p.description_ai_summary_ru,
+      p.description_ai_full_ru,
       p.description_original_text,
       p.sales_rank,
       p.sale_end_date,

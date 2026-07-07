@@ -306,13 +306,13 @@ export default function CartPage() {
                   </p>
                   <dl className="mt-6 space-y-3 border-t border-[var(--line)] pt-5 text-sm">
                     <div className="flex justify-between gap-4">
-                      <dt className="text-[var(--text-muted)]">Игры в PS Store</dt>
+                      <dt className="text-[var(--text-muted)]">Стоимость игры</dt>
                       <dd className="font-bold">
-                        {fmtGamePrice(total)}
+                        {formatRegionalAmount(activeRegion, total)}
                       </dd>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <dt className="text-[var(--text-muted)]">Баланс карт</dt>
+                      <dt className="text-[var(--text-muted)]">Баланс карты</dt>
                       <dd className="font-bold">
                         {recommendation
                           ? formatRegionalAmount(
@@ -323,7 +323,7 @@ export default function CartPage() {
                       </dd>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <dt className="text-[var(--text-muted)]">Останется</dt>
+                      <dt className="text-[var(--text-muted)]">Останется на аккаунте</dt>
                       <dd className="font-extrabold text-[#527000]">
                         {recommendation
                           ? formatRegionalAmount(
@@ -363,27 +363,36 @@ export default function CartPage() {
             </section>
 
             {recommendation && (
-              <div className="rounded-[18px] border border-[#91ad23]/35 bg-[var(--signal)]/18 px-5 py-4 text-sm font-bold text-[var(--ink)] sm:text-base">
-                Карты на {formatRegionalAmount(activeRegion, recommendation.balance)}{" "}
-                покрывают выбранные игры. На аккаунте останется{" "}
-                {formatRegionalAmount(activeRegion, recommendation.remainder)}.
+              <div className="flex items-start gap-3 rounded-[18px] border border-[#91ad23]/35 bg-[var(--signal)]/18 px-5 py-4 text-sm font-bold text-[var(--ink)] sm:text-base">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#527000] text-white text-[10px]">✓</span>
+                <span>
+                  Вы покупаете карты на {formatRegionalAmount(activeRegion, recommendation.balance)}.{" "}
+                  Этого хватит для оплаты выбранных игр в PS Store.
+                </span>
               </div>
             )}
 
             <section>
-              <div className="mb-4 flex items-end justify-between gap-4">
+              <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                    Выбранные товары
-                  </p>
-                  <h2 className="mt-2 text-2xl font-bold text-[var(--ink)]">
-                    Игры на {fmtGamePrice(total)}
-                  </h2>
+                  <div className="flex items-baseline gap-3">
+                    <h2 className="text-2xl font-bold text-[var(--ink)]">
+                      Выбранные товары
+                    </h2>
+                    <span className="text-xl font-extrabold text-[var(--ink)]">
+                      {formatRegionalAmount(activeRegion, total)}
+                    </span>
+                  </div>
+                  {recommendation && recommendation.remainder > 0 && (
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      {formatRegionalAmount(activeRegion, recommendation.remainder)} останется на вашем аккаунте
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"
                   onClick={() => clearCart(activeRegion)}
-                  className="rounded-[12px] border border-[var(--line-strong)] px-4 py-2.5 text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--ink)]"
+                  className="mt-1 rounded-[12px] border border-[var(--line-strong)] px-4 py-2.5 text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--ink)]"
                 >
                   Очистить
                 </button>
@@ -411,7 +420,10 @@ export default function CartPage() {
                       >
                         {item.title}
                       </Link>
-                      <p className="mt-2 font-extrabold text-[var(--ink)]">
+                      <p className="mt-1.5 text-sm text-[var(--text-muted)]">
+                        Цена в PS Store {item.price != null ? formatRegionalAmount(activeRegion, item.price) : "—"}
+                      </p>
+                      <p className="mt-1 font-extrabold text-[var(--ink)]">
                         {fmtGamePrice(item.price)}
                       </p>
                       <div className="mt-4 flex flex-wrap items-center gap-2">

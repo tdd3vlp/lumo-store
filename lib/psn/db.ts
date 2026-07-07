@@ -286,7 +286,7 @@ export async function upsertCategoryProduct(
       ${storeUrl}, ${product.name}, ${product.imageUrl},
       ${sql.array(product.platforms)},
       ${sale?.salesRank ?? null},
-      ${sale?.saleEndDate ?? null}::date,
+      ${(sale?.saleEndDate ?? product.promotionEndDate?.slice(0, 10)) ?? null}::date,
       ${j({ psnProductId: product.psnProductId })},
       now()
     )
@@ -367,6 +367,10 @@ export async function upsertProductDetail(
                                     THEN ${sql.array(detail.screenshotUrls)}
                                     ELSE screenshot_urls
                                   END,
+      sale_end_date             = COALESCE(
+                                    ${detail.promotionEndDate ? detail.promotionEndDate.slice(0, 10) : null}::date,
+                                    sale_end_date
+                                  ),
       raw_json                  = raw_json || ${j(detail.rawJson)},
       parser_version            = ${PARSER_VERSION},
       last_seen_at              = now()
@@ -377,12 +381,13 @@ export async function upsertProductDetail(
 export async function upsertAiDescription(
   region: PsnRegion,
   psnProductId: string,
-  fields: { translationRu: string | null; summaryRu: string },
+  fields: { translationRu: string | null; summaryRu: string; fullRu: string },
 ): Promise<void> {
   await sql`
     UPDATE psn_regional_products SET
       description_ai_ru_text    = COALESCE(${fields.translationRu}, description_ai_ru_text),
-      description_ai_summary_ru = ${fields.summaryRu}
+      description_ai_summary_ru = ${fields.summaryRu},
+      description_ai_full_ru    = ${fields.fullRu}
     WHERE region = ${region} AND psn_product_id = ${psnProductId}
   `;
 }
@@ -400,7 +405,7 @@ export async function listProductsNeedingAiEnrichment(
     SELECT psn_product_id, title, description_original_text, description_ru_text
     FROM psn_regional_products
     WHERE region = ${region}
-      AND description_ai_summary_ru IS NULL
+      AND (description_ai_summary_ru IS NULL OR description_ai_full_ru IS NULL)
       AND description_original_text IS NOT NULL
     ORDER BY last_seen_at DESC
     LIMIT ${limit}

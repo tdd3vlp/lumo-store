@@ -225,7 +225,7 @@ export default function GamePageClient({ game }: { game: Game }) {
             aria-hidden="true"
           />
 
-          <div className="relative grid gap-7 p-4 sm:p-6 md:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.28fr)] md:p-8 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-10 lg:p-10">
+          <div className="relative grid gap-7 p-4 sm:p-6 md:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.28fr)] md:p-8 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-10 lg:p-10 pb-6 md:pb-7 lg:pb-8">
             <div className="relative mx-auto aspect-[7/8] w-full max-w-[380px] overflow-hidden rounded-[18px] border-2 border-[var(--signal)] bg-[var(--ink-soft)]">
               <Image
                 src={game.image}
@@ -239,6 +239,11 @@ export default function GamePageClient({ game }: { game: Game }) {
 
             <div className="flex min-w-0 flex-col">
               <div className="mb-4 flex flex-wrap items-center gap-2">
+                {game.isPreorder && (
+                  <span className="inline-flex h-7 items-center rounded-[7px] bg-[var(--signal)] px-2.5 text-xs font-extrabold text-[var(--ink)]">
+                    Предзаказ
+                  </span>
+                )}
                 {game.rating !== null && (
                   <span className="inline-flex h-7 items-center rounded-[7px] border border-white/18 bg-white/[0.06] px-2.5 text-xs font-bold text-[var(--signal)]">
                     ★ {game.rating.toFixed(1)}
@@ -250,7 +255,13 @@ export default function GamePageClient({ game }: { game: Game }) {
                 {game.title}
               </h1>
 
-              <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-2">
+              {game.summaryRu && (
+                <p className="mt-3 max-w-[580px] text-[15px] leading-[1.65] text-white/62">
+                  {game.summaryRu}
+                </p>
+              )}
+
+              <div className="mt-5 flex flex-wrap items-end gap-x-3 gap-y-2">
                 <span className="font-[family-name:var(--font-unbounded)] text-3xl font-bold leading-none text-[var(--signal)] md:text-4xl">
                   {selectedEdition.price != null ? formatPriceAsRubles(selectedEdition.price, tryRate) : "Цена при выходе"}
                 </span>
@@ -265,6 +276,16 @@ export default function GamePageClient({ game }: { game: Game }) {
                   </>
                 )}
               </div>
+
+              {game.isPreorder && game.releaseDate && (
+                <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-white/70">
+                  <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-[var(--signal)]" aria-hidden="true">
+                    <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.6"/>
+                    <path d="M7 2v3M13 2v3M3 8h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                  Выходит {game.releaseDate}
+                </p>
+              )}
 
               <div className="mt-6 flex flex-wrap items-stretch gap-3 md:mt-auto md:pt-6">
                 {quantity === 0 ? (
@@ -335,22 +356,76 @@ export default function GamePageClient({ game }: { game: Game }) {
               </div>
             </div>
           </div>
+
+          {game.editions.length > 1 && (
+            <div className="border-t border-white/[0.09] px-4 pb-6 pt-5 sm:px-6 md:px-8 lg:px-10">
+              <p className="mb-4 text-[11px] font-extrabold uppercase tracking-[0.16em] text-white/40">
+                Выберите издание
+              </p>
+              <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {displayedEditions.map((edition) => {
+                  const isActive = edition.id === selectedEdition.id;
+                  const editionLabel = edition.label ?? inferEditionName(edition.name);
+                  const edDiscount =
+                    edition.price != null && edition.originalPrice != null && edition.originalPrice > edition.price
+                      ? Math.round((1 - edition.price / edition.originalPrice) * 100)
+                      : null;
+                  return (
+                    <button
+                      key={edition.id}
+                      type="button"
+                      onClick={() => setSelectedEditionId(edition.id)}
+                      className={`group flex w-[220px] shrink-0 items-stretch overflow-hidden rounded-[16px] border text-left transition sm:w-[240px] ${
+                        isActive
+                          ? "border-[var(--signal)] bg-white/[0.08]"
+                          : "border-white/[0.1] bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]"
+                      }`}
+                    >
+                      <div className="relative w-[76px] shrink-0 overflow-hidden bg-[var(--ink-soft)]">
+                        <Image
+                          src={edition.image ?? game.image}
+                          alt=""
+                          fill
+                          sizes="76px"
+                          className="object-cover transition duration-300 group-hover:scale-[1.04]"
+                        />
+                        {isActive && (
+                          <div className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--signal)] text-[var(--ink)] text-[10px] font-extrabold">
+                            ✓
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-1 flex-col justify-between p-3">
+                        <p className={`text-[13px] font-bold leading-[1.3] ${isActive ? "text-white" : "text-white/65 group-hover:text-white/85"}`}>
+                          {editionLabel}
+                        </p>
+                        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                          {edDiscount !== null && (
+                            <span className="rounded-[5px] bg-[var(--coral)] px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                              −{edDiscount}%
+                            </span>
+                          )}
+                          <span className={`text-sm font-extrabold leading-none ${isActive ? "text-[var(--signal)]" : "text-white/50"}`}>
+                            {edition.price != null
+                              ? formatPriceAsRubles(edition.price, tryRate)
+                              : "Цена при выходе"}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
           <section className="rounded-[20px] border border-[var(--line)] bg-[var(--card-surface)] p-5 md:p-7">
-            <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-              Об игре
-            </p>
             <h2 className="text-2xl font-bold tracking-[-0.035em] text-[var(--ink)]">
-              Описание
+              Об игре
             </h2>
-            {game.summaryRu && (
-              <p className="mt-4 text-[17px] font-semibold leading-7 tracking-[-0.015em] text-[var(--ink)] md:text-[18px]">
-                {game.summaryRu}
-              </p>
-            )}
-            <p className={`whitespace-pre-line text-[15px] leading-7 text-[var(--text-muted)] md:text-base ${game.summaryRu ? "mt-3" : "mt-4"}`}>
+            <p className="mt-4 whitespace-pre-line text-[15px] leading-7 text-[var(--text-muted)] md:text-base">
               {game.description.replaceAll(" _ ", "\n").replaceAll("...", "…")}
             </p>
             {game.psStoreUrl && (
@@ -366,39 +441,6 @@ export default function GamePageClient({ game }: { game: Game }) {
           </section>
 
           <div className="space-y-6">
-            <section className="rounded-[20px] border border-[var(--line)] bg-[var(--card-surface)] p-5">
-              <h2 className="text-lg font-bold tracking-[-0.025em] text-[var(--ink)]">
-                Издание
-              </h2>
-              <div className="mt-4 grid gap-2.5">
-                {displayedEditions.map((edition) => {
-                  const isActive = edition.id === selectedEdition.id;
-
-                  return (
-                    <button
-                      key={edition.id}
-                      type="button"
-                      onClick={() => setSelectedEditionId(edition.id)}
-                      className={`flex items-center justify-between gap-4 rounded-[14px] border px-4 py-3 text-left transition ${
-                        isActive
-                          ? "border-[var(--ink)] bg-[var(--ink)] text-white"
-                          : "border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] hover:border-[var(--line-strong)]"
-                      }`}
-                    >
-                      <span className="text-sm font-bold">{edition.name}</span>
-                      <span
-                        className={`shrink-0 font-extrabold ${
-                          isActive ? "text-[var(--signal)]" : ""
-                        }`}
-                      >
-                        {edition.price != null ? formatPriceAsRubles(edition.price, tryRate) : "Цена при выходе"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
             <section className="grid gap-px overflow-hidden rounded-[20px] border border-[var(--line)] bg-[var(--line)]">
               {[
                 ["Платформа", platformLabel],
@@ -421,7 +463,7 @@ export default function GamePageClient({ game }: { game: Game }) {
           </div>
         </div>
 
-        <section className="mt-9">
+        {!game.isPreorder && (screenshotsLoading || screenshots.length > 0) && <section className="mt-9">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--text-muted)]">
@@ -490,7 +532,7 @@ export default function GamePageClient({ game }: { game: Game }) {
               Для этой игры PlayStation Store пока не вернул изображения галереи.
             </div>
           )}
-        </section>
+        </section>}
       </main>
     </>
   );

@@ -1,8 +1,10 @@
 export type GameEdition = {
   id: string;
   name: string;
+  label?: string;
   price: number | null;
   originalPrice: number | null;
+  image?: string | null;
 };
 
 export type Game = {
@@ -29,6 +31,7 @@ export type Game = {
   salesRank?: number | null;
   saleEndDate?: string | null;
   summaryRu?: string | null;
+  isPreorder?: boolean;
 };
 
 export const games: Game[] = [

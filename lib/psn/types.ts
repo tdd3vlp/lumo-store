@@ -25,6 +25,7 @@ export type ParsedCategoryProduct = {
   originalPriceMinor: number | null;
   currencyCode: string | null;
   platforms: string[];
+  promotionEndDate: string | null;
 };
 
 export type ParsedProductDetail = {
@@ -46,6 +47,7 @@ export type ParsedProductDetail = {
   rating: number | null;
   ratingsCount: number | null;
   screenshotUrls: string[];
+  promotionEndDate: string | null;
   rawJson: Record<string, unknown>;
 };
 

@@ -28,6 +28,7 @@ export type GQLPrice = {
   basePrice: string | null;
   discountedPrice: string | null;
   isFree: boolean;
+  promotionEndDate: string | null;
 };
 
 export type GQLMediaItem = { type: string; url: string; role: string };
@@ -46,6 +47,7 @@ export type GQLProduct = {
   price: GQLPrice | null;
   media: GQLMediaItem[];
   storeDisplayClassification: string | null;
+  promotionEndDate: string | null;
 };
 
 export type GQLPageInfo = {
@@ -127,8 +129,31 @@ function apolloStateToGQLPage(apolloState: Record<string, unknown>): GQLCategory
           basePrice: (rawPrice.basePrice as string) ?? null,
           discountedPrice: (rawPrice.discountedPrice as string) ?? null,
           isFree: (rawPrice.isFree as boolean) ?? false,
+          promotionEndDate:
+            (rawPrice.promotionEndDate as string) ??
+            (rawPrice.endTime as string) ??
+            (rawPrice.discountedUntil as string) ??
+            null,
         }
       : null;
+
+    // Try to resolve promotion end date from localizedGenericPromotions refs.
+    // PSN stores the end date here rather than in the price object.
+    let promotionEndDate = price?.promotionEndDate ?? null;
+    if (!promotionEndDate) {
+      const promoRefs = (p.localizedGenericPromotions as Array<{ __ref: string } | null> | null) ?? [];
+      for (const promoRef of promoRefs) {
+        if (!promoRef?.__ref) continue;
+        const promo = apolloState[promoRef.__ref] as Record<string, unknown> | undefined;
+        if (!promo) continue;
+        const endTime =
+          (promo.endTime as string) ??
+          (promo.endDate as string) ??
+          (promo.promotionEndDate as string) ??
+          null;
+        if (endTime) { promotionEndDate = endTime; break; }
+      }
+    }
 
     const media = (p.media as GQLMediaItem[]) ?? [];
 
@@ -142,6 +167,7 @@ function apolloStateToGQLPage(apolloState: Record<string, unknown>): GQLCategory
         media,
         storeDisplayClassification:
           (p.storeDisplayClassification as string) ?? null,
+        promotionEndDate,
       },
     ];
   });
@@ -183,6 +209,7 @@ function apolloStateToGQLPage(apolloState: Record<string, unknown>): GQLCategory
         price: null, // not SSR'd for collection categories; existing snapshots fill in
         media,
         storeDisplayClassification: "FULL_GAME",
+        promotionEndDate: null,
       });
     }
   }
@@ -394,6 +421,7 @@ export type WCAProductData = {
   rating: number | null;
   ratingsCount: number | null;
   screenshotUrls: string[];
+  promotionEndDate: string | null;
 };
 
 // Roles that represent in-game screenshots (not promotional art)
@@ -501,6 +529,21 @@ export function parseProductDetailHtml(html: string): WCAProductData {
     ? explicitScreenshots
     : implicitScreenshots.slice(0, 8);
 
+  // Promotion end date — check price object first, then resolve
+  // localizedGenericPromotions refs from the full apolloState.
+  let promotionEndDate: string | null =
+    (merged.price as Record<string, unknown> | null)?.promotionEndDate as string ?? null;
+  if (!promotionEndDate) {
+    const promoRefs = (merged.localizedGenericPromotions as Array<{ __ref: string } | null> | null) ?? [];
+    for (const ref of promoRefs) {
+      if (!ref?.__ref) continue;
+      const promo = apolloState[ref.__ref] as Record<string, unknown> | undefined;
+      if (!promo) continue;
+      const t = (promo.endTime ?? promo.endDate ?? promo.promotionEndDate) as string | null;
+      if (t) { promotionEndDate = t; break; }
+    }
+  }
+
   return {
     id: merged.id as string,
     name: (merged.name as string) ?? "",
@@ -514,6 +557,7 @@ export function parseProductDetailHtml(html: string): WCAProductData {
     rating: starRating?.averageRating ?? null,
     ratingsCount: starRating?.totalRatingsCount ?? null,
     screenshotUrls,
+    promotionEndDate,
   };
 }
 

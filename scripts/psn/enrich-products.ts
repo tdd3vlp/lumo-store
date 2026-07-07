@@ -6,9 +6,12 @@
  *     languages, and screenshots.
  *
  *  2. AI pass   — calls OpenAI GPT-4o-mini for products that still lack a
- *     Russian description or have no short summary. Produces:
+ *     Russian description or have no short summary/full text. Produces:
  *       • description_ai_ru_text    – full Russian translation (when ru-ua unavailable)
  *       • description_ai_summary_ru – 1-2 sentence storefront summary in Russian
+ *       • description_ai_full_ru    – cleaned 2-paragraph "About the game" text,
+ *         rewritten from the store description with platform/edition/legal
+ *         boilerplate stripped out
  *
  * Usage:
  *   DATABASE_URL=... OPENAI_API_KEY=... npx tsx scripts/psn/enrich-products.ts
@@ -109,6 +112,42 @@ if (phase === "psn" || phase === "all") {
   }
 }
 
+// GPT sometimes emits a literal newline/tab inside a JSON string value (e.g.
+// between paragraphs of "full") instead of escaping it, which JSON.parse
+// rejects as a bad control character. Escape control chars, but only while
+// walking inside a string, so structural whitespace between tokens is untouched.
+function escapeControlCharsInJsonStrings(raw: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const ch of raw) {
+    if (!inString) {
+      if (ch === '"') inString = true;
+      out += ch;
+      continue;
+    }
+    if (escaped) {
+      out += ch;
+      escaped = false;
+    } else if (ch === "\\") {
+      out += ch;
+      escaped = true;
+    } else if (ch === '"') {
+      out += ch;
+      inString = false;
+    } else if (ch === "\n") {
+      out += "\\n";
+    } else if (ch === "\r") {
+      out += "\\r";
+    } else if (ch === "\t") {
+      out += "\\t";
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
 // ─── Pass 2: OpenAI translation + summary ────────────────────────────────────
 
 if (phase === "ai" || phase === "all") {
@@ -137,11 +176,20 @@ if (phase === "ai" || phase === "all") {
           "You are a game catalog assistant for a PlayStation Store pricing site targeting Russian-speaking users. " +
           "Respond with valid JSON only, no markdown fences.";
 
+        const fullInstruction =
+          `"full": "2-paragraph Russian text for the game's 'About the game' section. ` +
+          `Rewrite naturally from the source description — do not translate it literally. ` +
+          `Strip out store boilerplate: platform/edition availability notices (e.g. 'includes PS4 and PS5 versions'), ` +
+          `region/legal disclaimers, and marketing calls to action. Keep only what actually describes the game itself ` +
+          `(setting, story, gameplay, modes). Base it strictly on the provided source text — do not invent facts, ` +
+          `mechanics, or plot details that aren't in it."`;
+
         const userPrompt = needsTranslation
           ? `Game title: ${title}\n\nEnglish description:\n${descriptionOriginalText}\n\n` +
-            `Return JSON: { "translation": "full Russian translation", "summary": "1-2 sentence Russian summary for a buyer" }`
+            `Return JSON: { "translation": "full Russian translation", ` +
+            `"summary": "1-2 sentence Russian summary for a buyer", ${fullInstruction} }`
           : `Game title: ${title}\n\nRussian description:\n${descriptionRuText}\n\n` +
-            `Return JSON: { "summary": "1-2 sentence Russian summary for a buyer" }`;
+            `Return JSON: { "summary": "1-2 sentence Russian summary for a buyer", ${fullInstruction} }`;
 
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -155,7 +203,7 @@ if (phase === "ai" || phase === "all") {
               { role: "system", content: systemPrompt },
               { role: "user",   content: userPrompt },
             ],
-            max_tokens: needsTranslation ? 2000 : 300,
+            max_tokens: needsTranslation ? 2500 : 800,
             temperature: 0.3,
           }),
         });
@@ -166,16 +214,22 @@ if (phase === "ai" || phase === "all") {
           choices: Array<{ message: { content: string } }>;
         };
         const raw = json.choices[0]?.message?.content ?? "{}";
-        const parsed = JSON.parse(raw) as { translation?: string; summary?: string };
+        const parsed = JSON.parse(escapeControlCharsInJsonStrings(raw)) as {
+          translation?: string;
+          summary?: string;
+          full?: string;
+        };
 
         if (!parsed.summary) throw new Error("GPT returned no summary");
+        if (!parsed.full) throw new Error("GPT returned no full description");
 
         await upsertAiDescription(region, psnProductId, {
           translationRu: parsed.translation ?? null,
           summaryRu: parsed.summary,
+          fullRu: parsed.full,
         });
 
-        const tag = needsTranslation ? "translated+summary" : "summary";
+        const tag = needsTranslation ? "translated+summary+full" : "summary+full";
         console.log(`✓  ${tag}`);
         saved++;
       } catch (err) {

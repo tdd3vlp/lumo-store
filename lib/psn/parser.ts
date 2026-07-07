@@ -145,6 +145,9 @@ export function parseCategory(html: string): ParsedCategoryProduct[] {
       originalPriceMinor,
       currencyCode,
       platforms,
+      promotionEndDate:
+        typeof price?.promotionEndDate === "string" ? price.promotionEndDate :
+        typeof price?.endTime === "string" ? price.endTime : null,
     });
   }
 
@@ -219,6 +222,7 @@ export function parseCategoryGQL(
         originalPriceMinor,
         currencyCode: p.price && !p.price.isFree ? currencyCode : null,
         platforms: p.platforms ?? [],
+        promotionEndDate: p.promotionEndDate ?? p.price?.promotionEndDate ?? null,
       };
     });
 }
@@ -254,6 +258,7 @@ export function parseProductFromWCA(
     rating: wca.rating,
     ratingsCount: wca.ratingsCount,
     screenshotUrls: wca.screenshotUrls,
+    promotionEndDate: wca.promotionEndDate,
     rawJson: wca as unknown as Record<string, unknown>,
   };
 }
@@ -344,6 +349,7 @@ export function parseProduct(html: string): ParsedProductDetail {
     rating: null,
     ratingsCount: null,
     screenshotUrls: [],
+    promotionEndDate: null,
     rawJson: entry,
   };
 }

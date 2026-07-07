@@ -101,21 +101,21 @@ export default function BudgetHero({ coverGames }: Props) {
           <div className="absolute -left-24 top-[-110px] h-72 w-72 rounded-full bg-[var(--signal)]/[0.05] blur-3xl" />
         </div>
 
-        <div className="relative px-4 pb-7 pt-9 sm:px-6 md:px-10 md:pb-8 md:pt-10 lg:px-14 lg:pb-9 lg:pt-11">
+        <div className="relative px-4 pb-6 pt-8 sm:px-6 md:px-10 md:pb-7 md:pt-9 lg:px-14 lg:pb-8 lg:pt-10">
           <h1 className="relative z-20 font-[family-name:var(--font-unbounded)] text-[clamp(2.35rem,5.4vw,4.9rem)] font-extrabold leading-[0.92] tracking-[-0.055em] text-[var(--paper-strong)]">
             ИГРЫ ПОД ТВОЙ БЮДЖЕТ
           </h1>
 
-          <div className="relative z-20 mt-8 grid gap-8 md:min-h-[330px] md:grid-cols-[minmax(340px,0.82fr)_minmax(420px,1.18fr)] md:items-center lg:mt-9 lg:min-h-[365px] lg:grid-cols-[minmax(390px,0.78fr)_minmax(620px,1.22fr)]">
+          <div className="relative z-20 mt-7 grid gap-8 md:min-h-[300px] md:grid-cols-[minmax(340px,0.82fr)_minmax(420px,1.18fr)] md:items-center lg:mt-8 lg:min-h-[340px] lg:grid-cols-[minmax(390px,0.78fr)_minmax(620px,1.22fr)]">
             <div className="max-w-[520px] rounded-[18px] border border-white/20 bg-[linear-gradient(145deg,rgba(255,255,255,0.09),rgba(255,255,255,0.025))] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.32)] sm:p-5 lg:p-6">
-              <div className="mb-5 flex items-start justify-between gap-4">
+              <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-white/78">
                     Номинал карты:
                   </p>
                   <output
                     htmlFor="hero-budget-slider"
-                    className="mt-2 block font-[family-name:var(--font-unbounded)] text-[clamp(2.4rem,6vw,4.1rem)] font-bold leading-none tracking-[-0.05em] text-white"
+                    className="mt-1.5 block font-[family-name:var(--font-unbounded)] text-[clamp(2.2rem,5.8vw,3.8rem)] font-bold leading-none tracking-[-0.05em] text-white"
                   >
                     {formattedBudget}
                   </output>
@@ -163,14 +163,14 @@ export default function BudgetHero({ coverGames }: Props) {
               </div>
             </div>
 
-            <div className="relative z-10 min-h-[250px] md:min-h-[330px] lg:min-h-[390px]">
-              <div className="absolute inset-x-[-6px] top-[-34px] h-[250px] sm:inset-x-[6%] sm:top-[-28px] md:inset-x-0 md:top-[-30px] md:h-[330px] lg:top-[-44px] lg:h-[390px]">
+            <div className="relative z-10 min-h-[230px] md:min-h-[300px] lg:min-h-[340px]">
+              <div className="absolute inset-x-[-6px] top-1/2 h-[230px] -translate-y-1/2 sm:inset-x-[6%] md:inset-x-0 md:h-[300px] lg:h-[340px]">
                 {activeCoverGames.slice(0, 4).map((game, index) => {
                   const positions = [
-                    "left-[-1%] top-[52px] z-[1] w-[32%] -rotate-[5deg]",
-                    "left-[21%] top-[12px] z-[4] w-[36%] -rotate-[1.5deg]",
-                    "right-[15%] top-[38px] z-[3] w-[34%] rotate-[3deg]",
-                    "right-[-3%] top-[68px] z-[2] w-[32%] rotate-[6deg]",
+                    "left-[-1%] top-[48px] z-[1] w-[32%] -rotate-[5deg]",
+                    "left-[21%] top-[10px] z-[4] w-[35%] -rotate-[1.5deg]",
+                    "right-[15%] top-[34px] z-[3] w-[33%] rotate-[3deg]",
+                    "right-[-3%] top-[64px] z-[2] w-[32%] rotate-[6deg]",
                   ];
 
                   return (
