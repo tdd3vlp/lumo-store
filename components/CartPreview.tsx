@@ -6,7 +6,6 @@ import type React from "react";
 import { useMemo } from "react";
 import { useRegionRate } from "@/lib/pricing/context";
 import { formatPriceAsRubles } from "@/lib/pricing/rates";
-import { REGION_CONFIG } from "@/lib/gift-cards/regions";
 import { useStore } from "@/store/useStore";
 
 type CartPreviewProps = {

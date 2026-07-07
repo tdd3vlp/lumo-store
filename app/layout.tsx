@@ -4,9 +4,6 @@ import { RegionRatesProvider } from "@/lib/pricing/context";
 import { getRegionRate } from "@/lib/pricing/rates";
 import { getRegionalPricingRates } from "@/lib/pricing/rates.server";
 import "./globals.css";
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
 
 const unbounded = Unbounded({
   subsets: ["latin", "cyrillic"],

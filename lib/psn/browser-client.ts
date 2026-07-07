@@ -231,7 +231,6 @@ export class PsnBrowserClient {
   private browser: import("playwright").Browser | null = null;
   private context: import("playwright").BrowserContext | null = null;
   private sessionPage: import("playwright").Page | null = null;
-  private detailPage: import("playwright").Page | null = null;
   private categoryBaseUrl: string | null = null;
   private currentPageNum = 0;
   private lastRequestAt = 0;
@@ -394,11 +393,9 @@ export class PsnBrowserClient {
 
   async close(): Promise<void> {
     await this.sessionPage?.close().catch(() => {});
-    await this.detailPage?.close().catch(() => {});
     await this.context?.close().catch(() => {});
     await this.browser?.close().catch(() => {});
     this.sessionPage = null;
-    this.detailPage = null;
     this.context = null;
     this.browser = null;
     this.categoryBaseUrl = null;
@@ -560,9 +557,6 @@ export function parseProductDetailHtml(html: string): WCAProductData {
     promotionEndDate,
   };
 }
-
-/** @deprecated Use parseProductDetailHtml — kept for backward compat */
-export const parseWCAProductData = parseProductDetailHtml;
 
 /**
  * Extract the UUID category ID from a PS Store category URL.

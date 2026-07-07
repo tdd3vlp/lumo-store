@@ -232,43 +232,6 @@ export async function reapStaleJobs(staleMinutes = 15): Promise<number> {
   return rows.length;
 }
 
-// ─── Fetch cache ─────────────────────────────────────────────────────────────
-
-export async function getFetchCache(
-  url: string,
-): Promise<{ bodyHtml: string; bodyHash: string } | null> {
-  const [row] = await sql`
-    SELECT body_html, body_hash
-    FROM psn_fetch_cache
-    WHERE url = ${url}
-      AND expires_at > now()
-      AND parser_version = ${PARSER_VERSION}
-  `;
-  if (!row) return null;
-  return { bodyHtml: row.body_html as string, bodyHash: row.body_hash as string };
-}
-
-export async function setFetchCache(
-  url: string,
-  bodyHtml: string,
-  bodyHash: string,
-  ttlHours = 12,
-): Promise<void> {
-  await sql`
-    INSERT INTO psn_fetch_cache (url, body_html, body_hash, parser_version, expires_at)
-    VALUES (
-      ${url}, ${bodyHtml}, ${bodyHash}, ${PARSER_VERSION},
-      now() + ${`${ttlHours} hours`}::interval
-    )
-    ON CONFLICT (url) DO UPDATE SET
-      body_html      = EXCLUDED.body_html,
-      body_hash      = EXCLUDED.body_hash,
-      parser_version = EXCLUDED.parser_version,
-      fetched_at     = now(),
-      expires_at     = EXCLUDED.expires_at
-  `;
-}
-
 // ─── Regional products ───────────────────────────────────────────────────────
 
 export async function upsertCategoryProduct(
@@ -301,47 +264,6 @@ export async function upsertCategoryProduct(
     RETURNING id, (xmax = 0) AS is_new
   `;
   return { id: row.id as string, isNew: Boolean(row.is_new) };
-}
-
-// Russian descriptions belong on the IN/TR card row, keyed by that row's
-// (region, psn_product_id). Returns true only if a matching row was updated —
-// callers must treat 0-row updates as "no RU description stored".
-export async function setRuDescription(
-  region: PsnRegion,
-  psnProductId: string,
-  html: string | null,
-  text: string | null,
-): Promise<boolean> {
-  const rows = await sql`
-    UPDATE psn_regional_products
-    SET
-      description_ru_html = ${html},
-      description_ru_text = ${text},
-      last_seen_at        = now()
-    WHERE region = ${region} AND psn_product_id = ${psnProductId}
-    RETURNING id
-  `;
-  return rows.length > 0;
-}
-
-// IN/TR products that have a cross-region key (np_title_id) but no RU text yet.
-export async function listProductsNeedingRuDescription(
-  region: PsnRegion,
-  limit = 50,
-): Promise<Array<{ psnProductId: string; npTitleId: string | null }>> {
-  const rows = await sql`
-    SELECT psn_product_id, np_title_id
-    FROM psn_regional_products
-    WHERE region = ${region}
-      AND np_title_id IS NOT NULL
-      AND description_ru_text IS NULL
-    ORDER BY last_seen_at DESC
-    LIMIT ${limit}
-  `;
-  return rows.map((r) => ({
-    psnProductId: r.psn_product_id as string,
-    npTitleId: r.np_title_id as string | null,
-  }));
 }
 
 export async function upsertProductDetail(

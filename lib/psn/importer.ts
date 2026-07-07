@@ -1,7 +1,6 @@
 // NOTE: not `server-only` — also imported by scripts/psn/worker.ts under tsx.
 import {
   FATAL_CLIENT_CODES,
-  PsnClient,
   PsnClientError,
   validateStoreUrl,
 } from "./client";
@@ -10,25 +9,22 @@ import {
   extractCategoryId,
   regionFromCategoryUrl,
 } from "./browser-client";
-import { parseCategoryGQL, parseProduct } from "./parser";
+import { parseCategoryGQL } from "./parser";
 import {
   appendEvent,
   getStagedJobMeta,
   getStagedProducts,
-  listProductsNeedingRuDescription,
   recordPriceSnapshot,
   releaseAdvisoryLock,
   requeueJob,
   saveStagedProducts,
-  setRuDescription,
   tryAdvisoryLock,
   updateJob,
   upsertCategoryProduct,
   upsertCollection,
   upsertCollectionItem,
 } from "./db";
-import type { ImportJobOptions, ParsedCategoryProduct, PsnRegion } from "./types";
-import { buildProductUrl } from "./urls";
+import type { ImportJobOptions, ParsedCategoryProduct } from "./types";
 
 export type DryRunResult = {
   url: string;
@@ -358,81 +354,4 @@ export async function commitStagedJob(
   } finally {
     await releaseAdvisoryLock().catch(() => undefined);
   }
-}
-
-// ─── RU description pass ──────────────────────────────────────────────────────
-
-/**
- * Attach Russian descriptions to the IN/TR card rows that need them.
- *
- * The RU text is written onto the *source* region's row (IN/TR), not a UA row —
- * `description_ru_*` lives on the same product the storefront renders.
- *
- * KNOWN LIMITATION: PS Store product IDs frequently differ across regions, so a
- * full solution must discover the UA product by `np_title_id` (via the ru-ua
- * search). That search isn't implemented yet; this pass makes a best-effort
- * attempt with the same product ID on /ru-ua/ and, on any failure, leaves
- * `description_ru` NULL rather than guessing. Wire up np_title_id-based UA
- * discovery before relying on this for coverage.
- */
-export async function enrichRuDescriptions(
-  jobId: string,
-  region: PsnRegion,
-  limit = 50,
-): Promise<void> {
-  const targets = await listProductsNeedingRuDescription(region, limit);
-
-  await appendEvent(jobId, {
-    type: "info",
-    message: `RU enrichment: ${targets.length} ${region} products need descriptions`,
-  });
-
-  const client = new PsnClient();
-  let saved = 0;
-  let missed = 0;
-
-  for (const target of targets) {
-    // Best-effort: try the same product ID under /ru-ua/. See limitation above.
-    const url = buildProductUrl("UA", target.psnProductId);
-
-    try {
-      const { html } = await client.fetch(url);
-      const detail = parseProduct(html);
-      const ok = await setRuDescription(
-        region,
-        target.psnProductId,
-        detail.longDescriptionHtml,
-        detail.longDescriptionText,
-      );
-      if (ok && detail.longDescriptionText) {
-        saved += 1;
-        await appendEvent(jobId, {
-          type: "product",
-          message: `RU description saved for ${region}/${target.psnProductId}`,
-        });
-      } else {
-        missed += 1;
-      }
-    } catch (err) {
-      // Fatal block/circuit → stop the pass; otherwise leave RU null and move on.
-      if (isFatalClientError(err)) {
-        await appendEvent(jobId, {
-          type: "error",
-          message: `RU enrichment aborted (blocked): ${(err as Error).message}`,
-        });
-        throw err;
-      }
-      missed += 1;
-      await appendEvent(jobId, {
-        type: "warning",
-        message: `No RU description for ${target.psnProductId} (left empty): ${(err as Error).message}`,
-      });
-    }
-  }
-
-  await appendEvent(jobId, {
-    type: "info",
-    message: `RU enrichment done — saved ${saved}, left empty ${missed}`,
-    payload: { saved, missed },
-  });
 }
