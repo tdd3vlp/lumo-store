@@ -1,5 +1,13 @@
 # Lumo Signal storefront redesign
 
+> **Product pivot note.** This document was written when the store sold games.
+> The store now sells gift cards / top-ups (Steam, PlayStation, App Store, …)
+> curated from NS.gifts. Everywhere this doc says "game" / "game card" /
+> "game row", read "product" / "product card" / "product row" — a product is a
+> published gift-card denomination (`gift_card_denominations`). The **visual
+> system** (paper/ink/lime, typography, budget-slider hero, card treatment,
+> responsive rules) is still the source of truth; only the product noun changed.
+
 ## Objective
 
 Rebuild the current storefront around the visual direction shown in:
@@ -10,9 +18,8 @@ Rebuild the current storefront around the visual direction shown in:
 The result should feel like the same product shown in the references, not a
 loose recoloring of the current lavender interface.
 
-The core product idea must become immediately obvious: the user chooses a PSN
-gift-card budget, sees games that fit it, and understands how much balance will
-remain.
+The core product idea must become immediately obvious: the user chooses a
+budget, sees gift cards / top-ups that fit it, and understands what they get.
 
 ## Before implementation
 
