@@ -174,7 +174,7 @@ export default async function ProfilePage() {
               Управление магазином
             </h2>
             <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-              Курсы валют, импорт каталога из PS Store.
+              Курсы валют и каталог NS.gifts.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
@@ -184,10 +184,10 @@ export default async function ProfilePage() {
                 Изменить курс
               </Link>
               <Link
-                href="/admin/psn-import"
+                href="/admin/ns-gifts"
                 className="inline-flex rounded-[13px] border border-[var(--line-strong)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
               >
-                Parse
+                Каталог NS.gifts
               </Link>
             </div>
           </section>

@@ -1,100 +1,32 @@
+import Header from "@/components/Header";
+import TrustStrip from "@/components/TrustStrip";
+
 export const dynamic = "force-dynamic";
 
-import Header from "@/components/Header";
-import BudgetHero from "@/components/BudgetHero";
-import BudgetGamesSection from "@/components/BudgetGamesSection";
-import RegionSections from "@/components/RegionSections";
-import TrustStrip from "@/components/TrustStrip";
-import PromoBanner from "@/components/PromoBanner";
-import { getPsnGamesForRegion, getCollectionsForRegion, getFeaturedPromoForRegion } from "@/lib/psn/storefront";
-import { newGames } from "@/data/newGames";
-import { preorderGames } from "@/data/preorderGames";
-import type { Game } from "@/data/mockGames";
-
-function customerChoiceCovers(games: Game[]) {
-  const rated = games.filter(
-    (game) => game.rating != null && (game.ratingsCount ?? 0) > 0,
-  );
-  const average =
-    rated.length > 0
-      ? rated.reduce((sum, game) => sum + (game.rating ?? 0), 0) / rated.length
-      : 0;
-  const sortedByCount = [...rated].sort(
-    (a, b) => (a.ratingsCount ?? 0) - (b.ratingsCount ?? 0),
-  );
-  const threshold =
-    sortedByCount[Math.floor(sortedByCount.length / 2)]?.ratingsCount ?? 1;
-  const score = (game: Game) => {
-    const votes = game.ratingsCount ?? 0;
-    const rating = game.rating ?? 0;
-    if (votes === 0) return 0;
-    return (votes * rating + threshold * average) / (votes + threshold);
-  };
-
-  return [...games]
-    .sort((a, b) => score(b) - score(a))
-    .slice(0, 4)
-    .map((game) => ({
-      id: game.id,
-      title: game.title,
-      image: game.image,
-    }));
-}
-
-export default async function Home() {
-  const [gamesTR, collectionsTR, featuredPromoTR] = await Promise.all([
-    getPsnGamesForRegion("TR"),
-    getCollectionsForRegion("TR"),
-    getFeaturedPromoForRegion("TR"),
-  ]);
-
-  const catalog = { TR: gamesTR };
-  const collections = { TR: collectionsTR };
-
-  const heroCovers = {
-    TR: customerChoiceCovers(gamesTR),
-  };
-
+export default function Home() {
   return (
     <main className="min-h-screen pb-28 md:pb-32">
       <Header />
-      <BudgetHero coverGames={heroCovers} />
 
-      {featuredPromoTR && (
-        <PromoBanner
-          game={featuredPromoTR.game}
-          releaseLabel={featuredPromoTR.releaseLabel}
-          ctaLabel={featuredPromoTR.ctaLabel}
-        />
-      )}
-
-      {/* Лидеры продаж, Выбор покупателей, Новинки, Предзаказы */}
-      <div className="mt-10">
-        <RegionSections
-          catalog={catalog}
-          collections={collections}
-          staticNewGames={newGames.slice(0, 20)}
-          staticPreorders={preorderGames.slice(0, 20)}
-          part="top"
-        />
-      </div>
+      <section className="mx-auto max-w-7xl px-4 pt-8 md:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-[28px] bg-[var(--ink)] px-6 py-14 text-white md:px-12 md:py-20">
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--signal)]">
+            Lumo Store
+          </p>
+          <h1 className="mt-4 max-w-3xl font-[family-name:var(--font-unbounded)] text-4xl font-bold leading-[1.05] tracking-[-0.04em] md:text-6xl">
+            Карты и пополнения
+            <br />
+            для игр и сервисов
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-white/60 md:text-lg">
+            Steam, PlayStation, App Store и другие — коды с моментальной
+            доставкой на почту. Каталог скоро появится здесь.
+          </p>
+        </div>
+      </section>
 
       <div className="mt-10">
         <TrustStrip />
-      </div>
-
-      {/* Игры под бюджет */}
-      <div className="mt-10">
-        <BudgetGamesSection catalog={catalog} />
-      </div>
-
-      {/* Скидки недели, жанры, коллекции */}
-      <div className="mt-10">
-        <RegionSections
-          catalog={catalog}
-          collections={collections}
-          part="bottom"
-        />
       </div>
     </main>
   );
