@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "@/lib/db";
 import { computeCardSaleMinor } from "@/lib/pricing/rates";
+import { getNsPricing, computeNsPriceMinor } from "./pricing";
 import type { Product } from "./types";
 
 /**
@@ -12,7 +13,7 @@ import type { Product } from "./types";
  * gift-card catalog used.
  */
 export async function getPublishedProducts(): Promise<Product[]> {
-  const [rows, rateRows] = await Promise.all([
+  const [rows, rateRows, nsPricing] = await Promise.all([
     sql`
       SELECT
         d.id,
@@ -22,6 +23,7 @@ export async function getPublishedProducts(): Promise<Product[]> {
         d.amount_minor,
         d.display_name,
         d.image_url,
+        d.cost_usd,
         retail.sale_price_minor,
         COUNT(cards.id) FILTER (WHERE cards.status = 'available') AS available_count
       FROM gift_card_denominations d
@@ -30,10 +32,11 @@ export async function getPublishedProducts(): Promise<Product[]> {
       WHERE d.is_published = true AND d.active = true
       GROUP BY
         d.id, d.product_type, d.region, d.currency, d.amount_minor,
-        d.display_name, d.image_url, retail.sale_price_minor
+        d.display_name, d.image_url, d.cost_usd, retail.sale_price_minor
       ORDER BY d.product_type, d.amount_minor
     `,
     sql`SELECT region, card_coefficient_bps FROM regional_pricing_rates`,
+    getNsPricing(),
   ]);
 
   const rateMap = new Map(
@@ -42,8 +45,14 @@ export async function getPublishedProducts(): Promise<Product[]> {
 
   return rows.map((row) => {
     const amountMajor = Number(row.amount_minor) / 100;
-    let salePriceMinor =
-      row.sale_price_minor === null ? null : Number(row.sale_price_minor);
+    // NS.gifts products carry a USD cost → price dynamically from the global
+    // rate + markup. Others fall back to the retail view / region coefficient.
+    let salePriceMinor: number | null =
+      row.cost_usd !== null
+        ? computeNsPriceMinor(Number(row.cost_usd), nsPricing)
+        : row.sale_price_minor === null
+          ? null
+          : Number(row.sale_price_minor);
     if (salePriceMinor === null) {
       const coeff = rateMap.get(String(row.region));
       if (coeff !== undefined) {

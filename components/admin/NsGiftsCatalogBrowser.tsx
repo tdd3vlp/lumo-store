@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CuratedDenomination } from "@/lib/gift-cards/denominations";
 
 type NsGiftsCatalogItem = {
@@ -72,6 +72,52 @@ export default function NsGiftsCatalogBrowser({
   const [curateNotice, setCurateNotice] = useState<string | null>(null);
 
   const [buyTarget, setBuyTarget] = useState<CuratedDenomination | null>(null);
+
+  // Global USD->RUB rate + markup — re-prices the whole NS.gifts catalog.
+  const [rate, setRate] = useState("");
+  const [markupPct, setMarkupPct] = useState("");
+  const [pricingSaving, setPricingSaving] = useState(false);
+  const [pricingNotice, setPricingNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/ns-gifts/pricing", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { rate?: number; markupBps?: number } | null) => {
+        if (active && d) {
+          setRate(String(d.rate ?? ""));
+          setMarkupPct(String((d.markupBps ?? 0) / 100));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function savePricing(event: React.FormEvent) {
+    event.preventDefault();
+    setPricingSaving(true);
+    setPricingNotice(null);
+    try {
+      const res = await fetch("/api/admin/ns-gifts/pricing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rate: Number(rate.replace(",", ".")),
+          markupBps: Math.round(Number(markupPct.replace(",", ".")) * 100),
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error ?? "Не удалось сохранить");
+      setPricingNotice("Курс сохранён — цены пересчитаны.");
+      await refreshDenominations();
+    } catch (e) {
+      setPricingNotice(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setPricingSaving(false);
+    }
+  }
 
   const productTypes = useMemo(
     () => Array.from(new Set(denominations.map((d) => d.productType))).sort(),
@@ -177,6 +223,52 @@ export default function NsGiftsCatalogBrowser({
 
   return (
     <div className="mt-8 space-y-10">
+      {/* USD->RUB rate + markup */}
+      <section>
+        <h2 className="mb-4 text-xl font-bold text-[var(--ink)]">Курс и наценка</h2>
+        <form
+          onSubmit={savePricing}
+          className="flex flex-wrap items-end gap-4 rounded-[18px] border border-[var(--line)] bg-[var(--card-surface)] p-5"
+        >
+          <label className="text-sm font-semibold text-[var(--text-muted)]">
+            Курс USD → ₽
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
+              className="mt-1 block w-32 rounded-[11px] border border-[var(--line-strong)] bg-white px-3 py-2 text-[var(--ink)]"
+            />
+          </label>
+          <label className="text-sm font-semibold text-[var(--text-muted)]">
+            Наценка, %
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={markupPct}
+              onChange={(e) => setMarkupPct(e.target.value)}
+              className="mt-1 block w-28 rounded-[11px] border border-[var(--line-strong)] bg-white px-3 py-2 text-[var(--ink)]"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={pricingSaving}
+            className="rounded-[12px] bg-[var(--signal)] px-5 py-2.5 font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal-strong)] disabled:opacity-50"
+          >
+            {pricingSaving ? "Сохранение…" : "Сохранить"}
+          </button>
+          {pricingNotice && (
+            <span className="text-sm font-semibold text-[#527000]">{pricingNotice}</span>
+          )}
+          <p className="w-full text-xs text-[var(--text-muted)]">
+            Розница всех товаров из NS.gifts = закупка USD × курс × (1 + наценка).
+            Меняешь курс — цены на витрине обновляются автоматически.
+          </p>
+        </form>
+      </section>
+
       {/* Curated products */}
       <section>
         <div className="mb-4 flex items-center justify-between gap-4">

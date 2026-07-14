@@ -210,3 +210,29 @@ export async function getOrderInfo(customId: string): Promise<OrderInfoResponse>
 export async function checkBalance(): Promise<{ balance: string }> {
   return call("GET", "/api/v2/check_balance");
 }
+
+/**
+ * Live Steam account check by login. Returns whether the account exists / can
+ * be topped up — the same signal nebula-store shows as "Аккаунт найден". Note
+ * it does NOT return the account's region/currency (only a boolean), so the
+ * buyer still picks their wallet currency themselves.
+ */
+export async function checkSteamUser(
+  steamLogin: string,
+): Promise<{ accountStatus: boolean }> {
+  return call("POST", "/api/v2/steam/check_user", {
+    jsonBody: { steam_id: steamLogin },
+  });
+}
+
+export type ExchangeRateResponse = {
+  service_id: number;
+  date: string;
+  /** Units of each currency per 1 USD, e.g. { rub: 76.61, uah: 44.55, kzt: 475.69 }. */
+  rates: { rub: number; uah: number; kzt: number };
+};
+
+/** USD→{rub,uah,kzt} conversion rates NS.gifts uses for a top-up service. */
+export async function getExchangeRate(serviceId: number): Promise<ExchangeRateResponse> {
+  return call("POST", "/api/v2/exchange_rate", { jsonBody: { service_id: serviceId } });
+}

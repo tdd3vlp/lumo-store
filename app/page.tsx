@@ -1,23 +1,10 @@
 import Header from "@/components/Header";
-import BudgetHero from "@/components/BudgetHero";
-import BudgetProductsSection from "@/components/BudgetProductsSection";
-import ProductRowSection from "@/components/ProductRowSection";
-import TrustStrip from "@/components/TrustStrip";
-import { productTypeLabel } from "@/lib/products/labels";
+import HeroFeatured from "@/components/HeroFeatured";
+import SteamTopUp from "@/components/SteamTopUp";
 import { getPublishedProducts } from "@/lib/products/storefront";
 import type { Product } from "@/lib/products/types";
 
 export const dynamic = "force-dynamic";
-
-function groupByType(products: Product[]): Array<[string, Product[]]> {
-  const groups = new Map<string, Product[]>();
-  for (const product of products) {
-    const list = groups.get(product.productType) ?? [];
-    list.push(product);
-    groups.set(product.productType, list);
-  }
-  return [...groups.entries()];
-}
 
 export default async function Home() {
   let products: Product[] = [];
@@ -27,51 +14,41 @@ export default async function Home() {
     products = [];
   }
 
-  const groups = groupByType(products);
   const hasCatalog = products.length > 0;
 
+  // Site is in banner-only mode while the Hero redesign is in progress —
+  // everything below the banner (besides the "how it works" strip the Hero
+  // itself links to) is temporarily hidden.
   return (
     <main className="min-h-screen pb-28 md:pb-32">
       <Header />
-      <BudgetHero products={products} />
 
-      {hasCatalog ? (
-        <>
-          <div className="mt-10">
-            <BudgetProductsSection products={products} />
+      {/* Hero */}
+      <section className="mx-auto max-w-7xl px-4 pt-10 md:px-6 md:pt-16 lg:px-8">
+        {hasCatalog ? (
+          <HeroFeatured products={products} />
+        ) : (
+          <div className="overflow-hidden rounded-[28px] bg-[var(--ink)] px-6 py-14 text-white md:px-12 md:py-20">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--signal)]">
+              Lumo Store
+            </p>
+            <h1 className="mt-4 max-w-3xl font-[family-name:var(--font-unbounded)] text-4xl font-bold leading-[1.05] tracking-[-0.04em] md:text-6xl">
+              Карты пополнения
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-7 text-white/60 md:text-lg">
+              PlayStation, Steam, App Store, Xbox и другие — код приходит на
+              почту сразу после оплаты.
+            </p>
           </div>
+        )}
+      </section>
 
-          <div className="mt-10">
-            <TrustStrip />
-          </div>
-
-          <div className="mt-12 space-y-12">
-            {groups.map(([type, items]) => (
-              <ProductRowSection
-                key={type}
-                title={productTypeLabel(type)}
-                products={items}
-              />
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <section className="mx-auto mt-10 max-w-7xl px-4 md:px-6 lg:px-8">
-            <div className="rounded-[20px] border border-[var(--line)] bg-[var(--card-surface)] p-8 text-center">
-              <h2 className="font-[family-name:var(--font-unbounded)] text-2xl font-bold text-[var(--ink)]">
-                Каталог скоро появится
-              </h2>
-              <p className="mt-2 text-[var(--text-muted)]">
-                Мы наполняем витрину картами и пополнениями. Загляните чуть позже.
-              </p>
-            </div>
-          </section>
-          <div className="mt-10">
-            <TrustStrip />
-          </div>
-        </>
-      )}
+      <section
+        id="steam-topup"
+        className="mx-auto mt-10 max-w-7xl scroll-mt-24 px-4 md:mt-14 md:px-6 lg:px-8"
+      >
+        <SteamTopUp />
+      </section>
     </main>
   );
 }

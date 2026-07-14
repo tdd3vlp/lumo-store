@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import ProductCover from "@/components/ProductCover";
 import { formatRubles } from "@/lib/pricing/rates";
 import { productTypeLabel } from "@/lib/products/labels";
 import type { Product } from "@/lib/products/types";
@@ -19,20 +19,15 @@ export default function ProductPageClient({ product }: { product: Product }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       <div className="relative aspect-[7/8] overflow-hidden rounded-[22px] border border-[var(--line-strong)] bg-[#d7d1c7]">
-        {product.image ? (
-          <Image
-            src={product.image}
-            alt=""
-            fill
-            sizes="(max-width: 1024px) 100vw, 420px"
-            className="object-cover"
-            priority
-          />
-        ) : (
-          <span className="absolute inset-0 flex items-center justify-center font-[family-name:var(--font-unbounded)] text-2xl font-bold text-[var(--ink)]/40">
-            {productTypeLabel(product.productType)}
-          </span>
-        )}
+        <ProductCover
+          image={product.image}
+          productType={product.productType}
+          amountMajor={product.amountMajor}
+          currency={product.currency}
+          region={product.region}
+          sizes="(max-width: 1024px) 100vw, 420px"
+          priority
+        />
       </div>
 
       <div className="flex flex-col">

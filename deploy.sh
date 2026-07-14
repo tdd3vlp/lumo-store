@@ -19,6 +19,12 @@ rsync -avz --delete \
   $SERVER:$APP/
 ssh -i $KEY -o StrictHostKeyChecking=no $SERVER "sudo chown -R lumo:lumo $APP"
 
+echo "→ Установка зависимостей (от lumo)..."
+ssh -i $KEY -o StrictHostKeyChecking=no $SERVER "sudo -u lumo bash -c 'cd $APP && npm install --no-audit --no-fund'"
+
+echo "→ Миграции БД (от lumo)..."
+ssh -i $KEY -o StrictHostKeyChecking=no $SERVER "sudo -u lumo bash -c 'cd $APP && node_modules/.bin/tsx scripts/db/migrate.ts'"
+
 echo "→ Сборка (от lumo)..."
 ssh -i $KEY -o StrictHostKeyChecking=no $SERVER "
   sudo rm -f /tmp/lumo-build.log

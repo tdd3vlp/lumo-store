@@ -1,7 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import BuyButton from "@/components/BuyButton";
+import ProductCover from "@/components/ProductCover";
 import { formatRubles } from "@/lib/pricing/rates";
 import { productTypeLabel } from "@/lib/products/labels";
 import type { Product } from "@/lib/products/types";
@@ -26,22 +27,6 @@ function HeartIcon({ filled }: { filled: boolean }) {
   );
 }
 
-function CartIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <path d="M6.5 8.5h11l-1 10.5a2 2 0 0 1-2 1.5h-5a2 2 0 0 1-2-1.5L6.5 8.5Z" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9 9V7.5a3 3 0 0 1 6 0V9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export default function ProductCard({ product }: { product: Product }) {
   const favorites = useStore((state) => state.favorites);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
@@ -56,19 +41,14 @@ export default function ProductCard({ product }: { product: Product }) {
         className="relative block aspect-[7/8] overflow-hidden bg-[#d7d1c7]"
         aria-label={product.displayName}
       >
-        {product.image ? (
-          <Image
-            src={product.image}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 50vw, 240px"
-            className="object-cover transition duration-500 group-hover:scale-[1.04]"
-          />
-        ) : (
-          <span className="absolute inset-0 flex items-center justify-center font-[family-name:var(--font-unbounded)] text-lg font-bold text-[var(--ink)]/40">
-            {productTypeLabel(product.productType)}
-          </span>
-        )}
+        <ProductCover
+          image={product.image}
+          productType={product.productType}
+          amountMajor={product.amountMajor}
+          currency={product.currency}
+          region={product.region}
+          sizes="(max-width: 640px) 50vw, 240px"
+        />
         <span className="absolute left-3 top-3 rounded-full bg-[var(--sky)] px-2.5 py-1 text-[11px] font-extrabold text-white">
           {productTypeLabel(product.productType)}
         </span>
@@ -103,32 +83,27 @@ export default function ProductCard({ product }: { product: Product }) {
         <p className="mt-1 text-sm text-[var(--text-muted)]">
           {product.amountMajor.toLocaleString("ru-RU")} {product.currency}
         </p>
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <span className="font-[family-name:var(--font-unbounded)] text-lg font-bold tracking-[-0.03em] text-[var(--ink)]">
-            {product.salePriceMinor != null
-              ? formatRubles(product.salePriceMinor)
-              : "Цена уточняется"}
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              addToCart({
-                denominationId: product.denominationId,
-                productType: product.productType,
-                title: product.displayName,
-                region: product.region,
-                currency: product.currency,
-                amountMajor: product.amountMajor,
-                priceMinor: product.salePriceMinor,
-                image: product.image,
-              })
-            }
-            className="flex h-10 w-10 items-center justify-center rounded-[12px] border border-[var(--ink)] bg-[var(--signal)] text-[var(--ink)] transition hover:bg-[var(--signal-strong)]"
-            aria-label={`Добавить ${product.displayName} в корзину`}
-          >
-            <CartIcon />
-          </button>
-        </div>
+        <span className="mt-4 font-[family-name:var(--font-unbounded)] text-lg font-bold tracking-[-0.03em] text-[var(--ink)]">
+          {product.salePriceMinor != null
+            ? formatRubles(product.salePriceMinor)
+            : "Цена уточняется"}
+        </span>
+        <BuyButton
+          className="mt-3"
+          aria-label={`Купить ${product.displayName}`}
+          onClick={() =>
+            addToCart({
+              denominationId: product.denominationId,
+              productType: product.productType,
+              title: product.displayName,
+              region: product.region,
+              currency: product.currency,
+              amountMajor: product.amountMajor,
+              priceMinor: product.salePriceMinor,
+              image: product.image,
+            })
+          }
+        />
       </div>
     </article>
   );
