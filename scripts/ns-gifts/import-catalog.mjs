@@ -168,42 +168,61 @@ for (const cat of stock.categories) {
     const row = {
       pt, region, currency: ac.currency, amount: ac.amount,
       usd: svc.price, serviceId: svc.service_id,
+      inStock: Number(svc.in_stock) || 0,
       displayName: `${LABEL[pt]} ${ac.amount % 1 === 0 ? ac.amount : ac.amount} ${ac.currency}`,
     };
+    // Dedup a denomination to one service: prefer one that's actually in stock,
+    // then the cheapest.
     const prev = byKey.get(k);
-    if (!prev || row.usd < prev.usd) byKey.set(k, row);
+    const better =
+      !prev ||
+      (row.inStock > 0 && prev.inStock <= 0) ||
+      (row.inStock > 0 === prev.inStock > 0 && row.usd < prev.usd);
+    if (better) byKey.set(k, row);
   }
 }
 
 const rows = [...byKey.values()];
 const perType = {};
-for (const r of rows) perType[r.pt] = (perType[r.pt] || 0) + 1;
-console.log(`matched (target brands, code): ${matched}, region-filtered out: ${regionFiltered}, unique to import: ${rows.length}`);
-console.log("per product_type:", perType);
+let publishable = 0;
+for (const r of rows) {
+  perType[r.pt] = perType[r.pt] || { inStock: 0, out: 0 };
+  if (r.inStock > 0) { perType[r.pt].inStock++; publishable++; } else perType[r.pt].out++;
+}
+console.log(`matched (target brands, code): ${matched}, region-filtered out: ${regionFiltered}, unique: ${rows.length}, publishable (in stock): ${publishable}`);
+console.log("per product_type (in stock / out):", JSON.stringify(perType));
 
 if (DRY) {
   console.log("--- dry run, sample ---");
-  for (const r of rows.slice(0, 15)) console.log(`  ${r.pt} ${r.region} ${r.amount} ${r.currency} usd=${r.usd} «${r.displayName}»`);
+  for (const r of rows.slice(0, 15)) console.log(`  ${r.pt} ${r.region} ${r.amount} ${r.currency} usd=${r.usd} stock=${r.inStock} «${r.displayName}»`);
   process.exit(0);
 }
 
 // ---- write ----
 if (!env.DATABASE_URL) { console.error("DATABASE_URL missing"); process.exit(1); }
 const sql = postgres(env.DATABASE_URL, { max: 4, prepare: false });
-let inserted = 0;
+// is_published tracks NS.gifts availability: only in-stock denominations are
+// sellable. First unpublish every NS-sourced denomination, then republish only
+// the ones in stock below — so the published set is exactly what NS can fulfil
+// right now (drops stale rows and items NS no longer lists). This is NOT a
+// real-time guarantee; a purchase-time stock check is still required before
+// charging.
+await sql`UPDATE gift_card_denominations SET is_published = false WHERE ns_gifts_service_id IS NOT NULL`;
+let published = 0, unpublished = 0;
 for (const r of rows) {
+  const isPublished = r.inStock > 0;
+  if (isPublished) published++; else unpublished++;
   await sql`
     INSERT INTO gift_card_denominations
       (region, currency, amount_minor, product_type, display_name, cost_usd, ns_gifts_service_id, is_published, active)
-    VALUES (${r.region}, ${r.currency}, ${Math.round(r.amount * 100)}, ${r.pt}, ${r.displayName}, ${r.usd}, ${r.serviceId}, true, true)
+    VALUES (${r.region}, ${r.currency}, ${Math.round(r.amount * 100)}, ${r.pt}, ${r.displayName}, ${r.usd}, ${r.serviceId}, ${isPublished}, true)
     ON CONFLICT (region, currency, amount_minor, product_type) DO UPDATE SET
       display_name = EXCLUDED.display_name,
       cost_usd = EXCLUDED.cost_usd,
       ns_gifts_service_id = EXCLUDED.ns_gifts_service_id,
-      is_published = true,
+      is_published = EXCLUDED.is_published,
       active = true
   `;
-  inserted++;
 }
-console.log(`Upserted ${inserted} denominations.`);
+console.log(`Synced ${rows.length} denominations — published (in stock): ${published}, unpublished (out of stock): ${unpublished}.`);
 await sql.end();
