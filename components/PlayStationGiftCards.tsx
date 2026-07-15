@@ -253,14 +253,14 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
       {selected && (
         <div className="mt-6 rounded-[24px] border border-[var(--line)] bg-[var(--paper-strong)] p-5 md:p-6">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
-            <div className="relative h-[150px] w-[120px] shrink-0 self-center md:self-start">
+            <div className="relative aspect-[3/4] w-[170px] shrink-0 self-center md:w-[190px] md:self-start">
               <Image
-                src={selected.image || "/banners/playstation.png"}
+                src={REGION_CARD[selected.region] ?? selected.image ?? "/banners/playstation.png"}
                 alt=""
                 fill
-                sizes="120px"
+                sizes="190px"
                 className="object-contain"
-                style={{ filter: "drop-shadow(0 10px 18px rgba(21,19,27,0.18))" }}
+                style={{ filter: "drop-shadow(0 12px 22px rgba(21,19,27,0.2))" }}
               />
             </div>
 
@@ -271,16 +271,17 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
                 {amountLabel(selected.amountMajor, selected.currency)} · {selected.currency} (
                 {REGION_META[selected.region]?.label ?? selected.region})
               </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-[var(--text-muted)]">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
+              <div className="mt-4 flex flex-col items-start gap-2 text-sm font-semibold text-[var(--text-muted)]">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--card-surface)] px-3.5 py-2">
                   <span aria-hidden="true">{REGION_META[selected.region]?.flag ?? "🎮"}</span>
                   Регион {REGION_META[selected.region]?.label ?? selected.region}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
-                  ⚡ Цифровой код
+                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--card-surface)] px-3.5 py-2">
+                  <span aria-hidden="true">⚡</span>
+                  Цифровой код
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-3.5 w-3.5 text-[#1e8a4c]">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--card-surface)] px-3.5 py-2">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-4 w-4 text-[#1e8a4c]">
                     <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   Мгновенная доставка
