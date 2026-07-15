@@ -25,14 +25,14 @@ const CURRENCY_SYMBOL: Record<string, string> = {
   PLN: "zł",
 };
 
-// Static carousel fan. Card artwork per denomination is supplied later; for now
-// every slot uses the brand cover so the layout is ready to drop images into.
-const FAN = [
-  { src: "/banners/playstation.png", label: "$25", pos: -2 },
-  { src: "/banners/playstation.png", label: "$100", pos: 1 },
-  { src: "/banners/playstation.png", label: "$75", pos: 2 },
-  { src: "/banners/playstation.png", label: "$50", pos: 0 },
-];
+// One card per region — the fan centres on whichever region is selected below.
+const REGION_CARD: Record<string, string> = {
+  US: "/banners/ps-us.png",
+  UK: "/banners/ps-uk.png",
+  TR: "/banners/ps-tr.png",
+  IN: "/banners/ps-in.png",
+  PL: "/banners/ps-pl.png",
+};
 
 function amountLabel(amount: number, currency: string): string {
   const sym = CURRENCY_SYMBOL[currency] ?? "";
@@ -112,9 +112,16 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
     setAmountId(null);
   }
 
+  const activeIdx = Math.max(0, regions.indexOf(region));
+  function stepRegion(delta: number) {
+    const n = regions.length;
+    if (n === 0) return;
+    pickRegion(regions[((activeIdx + delta) % n + n) % n]);
+  }
+
   return (
     <div>
-      {/* Header + static carousel */}
+      {/* Header + region card carousel (centres on the selected region) */}
       <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-10">
         <div>
           <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
@@ -133,28 +140,47 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
 
         <div className="relative">
           <div className="absolute right-0 top-0 z-20 flex gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)]/50" aria-hidden="true">
+            <button
+              type="button"
+              onClick={() => stepRegion(-1)}
+              aria-label="Предыдущий регион"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)]/60 transition hover:text-[var(--ink)]"
+            >
               <ArrowIcon dir="prev" />
-            </span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)]/50" aria-hidden="true">
+            </button>
+            <button
+              type="button"
+              onClick={() => stepRegion(1)}
+              aria-label="Следующий регион"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)]/60 transition hover:text-[var(--ink)]"
+            >
               <ArrowIcon dir="next" />
-            </span>
+            </button>
           </div>
-          <div className="relative mx-auto h-[240px] w-full max-w-[440px] md:h-[300px]" style={{ perspective: 1400 }} aria-hidden="true">
-            {FAN.map((card, i) => {
-              const abs = Math.abs(card.pos);
+          <div className="relative mx-auto h-[240px] w-full max-w-[440px] md:h-[300px]" style={{ perspective: 1400 }}>
+            {regions.map((r, i) => {
+              const n = regions.length;
+              let off = ((i - activeIdx) % n + n) % n;
+              if (off > Math.floor(n / 2)) off -= n;
+              const abs = Math.abs(off);
+              if (abs > 2) return null;
+              const isCenter = off === 0;
               return (
-                <div
-                  key={i}
-                  className="absolute left-1/2 top-1/2 aspect-[3/4] w-[150px] md:w-[190px]"
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => pickRegion(r)}
+                  aria-label={REGION_META[r]?.label ?? r}
+                  tabIndex={isCenter ? 0 : -1}
+                  className="absolute left-1/2 top-1/2 aspect-[3/4] w-[150px] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:w-[190px]"
                   style={{
-                    transform: `translate(-50%, -50%) translateX(${card.pos * 92}px) rotateY(${card.pos === 0 ? 0 : card.pos > 0 ? -28 : 28}deg) scale(${card.pos === 0 ? 1 : Math.max(0.72, 0.88 - (abs - 1) * 0.08)})`,
+                    transform: `translate(-50%, -50%) translateX(${off * 92}px) rotateY(${off === 0 ? 0 : off > 0 ? -28 : 28}deg) scale(${isCenter ? 1 : Math.max(0.72, 0.88 - (abs - 1) * 0.08)})`,
                     zIndex: 10 - abs,
                     filter: "drop-shadow(0 14px 24px rgba(21,19,27,0.22))",
                   }}
                 >
-                  <Image src={card.src} alt="" fill sizes="190px" className="object-contain" />
-                </div>
+                  <Image src={REGION_CARD[r] ?? "/banners/playstation.png"} alt="" fill sizes="190px" className="object-contain" />
+                </button>
               );
             })}
           </div>
