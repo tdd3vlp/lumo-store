@@ -1,0 +1,15 @@
+[Unit]
+Description=Lumo — NS.gifts catalog stock sync (publish only in-stock denominations)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=lumo
+WorkingDirectory=/home/lumo/app
+EnvironmentFile=/home/lumo/app/.env
+# Reads NS.gifts /stock live (server IP is whitelisted) and re-publishes only
+# what is in stock; unpublishes the rest. Idempotent, safe to run repeatedly.
+ExecStart=/home/lumo/app/node_modules/.bin/tsx scripts/ns-gifts/import-catalog.mjs
+# NS.gifts hiccups shouldn't cascade; just try again next tick.
+TimeoutStartSec=300
