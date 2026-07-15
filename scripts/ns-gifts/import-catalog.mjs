@@ -98,10 +98,21 @@ function parseAmountCurrency(name) {
   if (m) return { amount: +m[1].replace(",", "."), currency: SYMBOL_CUR[m[2]] };
   return null;
 }
+function normRegion(token) {
+  if (token === "GL" || token === "GLOBAL") return "GLOBAL";
+  if (token === "USA") return "US";
+  // Some categories name the region by its currency ("| INR", "| USD", "| PLN");
+  // map that back to the country code.
+  if (CUR_REGION[token]) return CUR_REGION[token];
+  return token;
+}
 function parseRegion(catName, svcName, currency) {
-  for (const s of [catName, svcName]) {
+  // Prefer the service name: it carries the country segment
+  // ("Playstation Gift Card | IN | 1000 INR"), while the category name may only
+  // carry the currency ("Playstation Gift Card | INR").
+  for (const s of [svcName, catName]) {
     const m = s.match(/\|\s*([A-Z]{2,3})\s*(?:\||$)/);
-    if (m) return m[1] === "GL" ? "GLOBAL" : m[1];
+    if (m) return normRegion(m[1]);
   }
   return CUR_REGION[currency] ?? "GLOBAL";
 }
