@@ -33,10 +33,20 @@ const ACCOUNT_TTL_MS = 60 * 1000;
 const fxCache = new Map<number, { at: number; rates: FxRates }>();
 const accountCache = new Map<string, { at: number; status: boolean }>();
 
+// NS.gifts occasionally drops a request (rate-limit / cold token); one retry
+// turns most of those transient failures into a success.
+async function retryOnce<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch {
+    return await fn();
+  }
+}
+
 async function cachedFx(serviceId: number): Promise<FxRates> {
   const hit = fxCache.get(serviceId);
   if (hit && Date.now() - hit.at < FX_TTL_MS) return hit.rates;
-  const { rates } = await getExchangeRate(serviceId);
+  const { rates } = await retryOnce(() => getExchangeRate(serviceId));
   fxCache.set(serviceId, { at: Date.now(), rates });
   return rates;
 }
@@ -45,7 +55,7 @@ async function cachedCheckUser(login: string): Promise<boolean> {
   const now = Date.now();
   const hit = accountCache.get(login);
   if (hit && now - hit.at < ACCOUNT_TTL_MS) return hit.status;
-  const { accountStatus } = await checkSteamUser(login);
+  const { accountStatus } = await retryOnce(() => checkSteamUser(login));
   if (accountCache.size > 2000) {
     for (const [key, v] of accountCache) {
       if (now - v.at >= ACCOUNT_TTL_MS) accountCache.delete(key);
@@ -115,6 +125,52 @@ export async function quoteSteamTopUp(input: {
     const amountUsd = amountToUsd(input.amount, input.currency, fx);
     const priceMinor = priceMinorFromUsd(amountUsd, fx.rub, pricing.markupBps);
     return { canRefill: true, amountUsd, priceMinor, min, max, error: null };
+  } catch {
+    return { ...empty, error: GENERIC_ERROR };
+  }
+}
+
+export type SteamTopUpPrice = {
+  ok: boolean;
+  amountUsd: number | null;
+  priceMinor: number | null;
+  min: number | null;
+  max: number | null;
+  error: string | null;
+};
+
+/**
+ * Prices a top-up WITHOUT re-checking the account. The form already validated
+ * the login live, and payment re-checks it just before charging, so the
+ * checkout page only needs the price — recomputed server-side from the (cached)
+ * official FX rate so it never trusts a tampered query, and never flakes on the
+ * per-account Steam lookup.
+ */
+export async function priceSteamTopUp(input: {
+  amount: number;
+  currency: TopUpCurrency;
+}): Promise<SteamTopUpPrice> {
+  const empty: SteamTopUpPrice = {
+    ok: false,
+    amountUsd: null,
+    priceMinor: null,
+    min: null,
+    max: null,
+    error: null,
+  };
+  const stub = devStub();
+  try {
+    const [fx, pricing] = await Promise.all([
+      stub ? stub.fx : cachedFx(STEAM_TOPUP_SERVICE_ID),
+      getNsPricing(),
+    ]);
+    const { min, max } = topUpBounds(input.currency, fx);
+    if (!isValidTopUpAmount(input.amount, input.currency, fx)) {
+      return { ...empty, min, max, error: `Сумма должна быть от ${min} до ${max}.` };
+    }
+    const amountUsd = amountToUsd(input.amount, input.currency, fx);
+    const priceMinor = priceMinorFromUsd(amountUsd, fx.rub, pricing.markupBps);
+    return { ok: true, amountUsd, priceMinor, min, max, error: null };
   } catch {
     return { ...empty, error: GENERIC_ERROR };
   }

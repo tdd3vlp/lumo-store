@@ -7,7 +7,7 @@ import {
   isTopUpCurrency,
   isValidSteamLogin,
 } from "@/lib/products/steam-topup";
-import { quoteSteamTopUp } from "@/lib/products/steam-topup-quote";
+import { priceSteamTopUp } from "@/lib/products/steam-topup-quote";
 
 export const dynamic = "force-dynamic";
 
@@ -42,8 +42,10 @@ export default async function SteamCheckoutPage({
     notFound();
   }
 
-  // Re-validate + re-price server-side — never trust the query string.
-  const quote = await quoteSteamTopUp({ login, amount, currency });
+  // Re-price server-side off the official rate (never trust the query string).
+  // The account was already validated live on the form and is re-checked at
+  // payment, so the checkout doesn't re-run the flaky per-account Steam lookup.
+  const quote = await priceSteamTopUp({ amount, currency });
   const amountLabel = formatTopUpAmount(amount, currency);
 
   return (
@@ -61,7 +63,7 @@ export default async function SteamCheckoutPage({
           Оформление заказа
         </h1>
 
-        {quote.canRefill && quote.priceMinor != null ? (
+        {quote.ok && quote.priceMinor != null ? (
           <>
             {/* Order summary */}
             <section className="mt-8 rounded-[20px] border border-[var(--line)] bg-[var(--paper-strong)] p-5 md:p-6">
