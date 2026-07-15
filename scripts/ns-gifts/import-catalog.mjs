@@ -128,6 +128,15 @@ async function loadCatalog() {
 
 const stock = await loadCatalog();
 
+// Only these 5 brands go live, with a per-brand region policy that mirrors
+// lib/products/brands.ts (allowedRegions). steam/nintendo: every stocked region.
+const TARGET_BRANDS = new Set(["playstation", "steam", "apple", "xbox", "nintendo"]);
+const BRAND_REGIONS = {
+  apple: new Set(["RU", "US", "TR"]),
+  playstation: new Set(["TR", "IN", "US", "PL", "UK"]),
+  xbox: new Set(["US", "TR", "EU"]),
+};
+
 // ---- parse + filter + dedup ----
 const byKey = new Map();
 let matched = 0, regionFiltered = 0;
@@ -137,12 +146,13 @@ for (const cat of stock.categories) {
   if (!codeType) continue;
   for (const svc of cat.services) {
     const pt = classify(cat.category_name, svc.service_name);
-    if (!pt) continue;
+    if (!pt || !TARGET_BRANDS.has(pt)) continue;
     const ac = parseAmountCurrency(svc.service_name);
     if (!ac) continue;
     const region = parseRegion(cat.category_name, svc.service_name, ac.currency);
     matched++;
-    if (!ALL_REGIONS && !ALLOWED_REGIONS.has(region)) { regionFiltered++; continue; }
+    const brandRegions = BRAND_REGIONS[pt];
+    if (brandRegions && !brandRegions.has(region)) { regionFiltered++; continue; }
     const k = `${pt}|${region}|${ac.currency}|${ac.amount}`;
     const row = {
       pt, region, currency: ac.currency, amount: ac.amount,

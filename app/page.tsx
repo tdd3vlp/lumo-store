@@ -14,33 +14,16 @@ export default async function Home() {
     products = [];
   }
 
-  const hasCatalog = products.length > 0;
-
-  // Site is in banner-only mode while the Hero redesign is in progress —
-  // everything below the banner (besides the "how it works" strip the Hero
-  // itself links to) is temporarily hidden.
+  // The hero carousel is brand navigation built on static brand cards, so it
+  // renders regardless of catalog state — it must never blank out just because
+  // no products happen to be published yet.
   return (
     <main className="min-h-screen pb-28 md:pb-32">
       <Header />
 
       {/* Hero */}
       <section className="mx-auto max-w-7xl px-4 pt-10 md:px-6 md:pt-16 lg:px-8">
-        {hasCatalog ? (
-          <HeroFeatured products={products} />
-        ) : (
-          <div className="overflow-hidden rounded-[28px] bg-[var(--ink)] px-6 py-14 text-white md:px-12 md:py-20">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--signal)]">
-              Lumo Store
-            </p>
-            <h1 className="mt-4 max-w-3xl font-[family-name:var(--font-unbounded)] text-4xl font-bold leading-[1.05] tracking-[-0.04em] md:text-6xl">
-              Карты пополнения
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-7 text-white/60 md:text-lg">
-              PlayStation, Steam, App Store, Xbox и другие — код приходит на
-              почту сразу после оплаты.
-            </p>
-          </div>
-        )}
+        <HeroFeatured products={products} />
       </section>
 
       <section

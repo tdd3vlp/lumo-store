@@ -94,10 +94,11 @@ export function isValidTopUpAmount(
 }
 
 /**
- * Customer price in ruble minor units: the USD figure charged at our selling
- * rate (app_settings USD→RUB) plus markup, rounded to whole rubles.
+ * Customer price in ruble minor units: the USD figure converted to rubles at
+ * NS.gifts' own official USD→RUB rate, plus our markup, rounded to whole rubles.
+ * With that single rate a ruble top-up reduces to amount × (1 + markup).
  */
-export function priceMinorFromUsd(usd: number, sellRate: number, markupBps: number): number {
-  const rub = usd * sellRate * (1 + markupBps / 10000);
+export function priceMinorFromUsd(usd: number, rubPerUsd: number, markupBps: number): number {
+  const rub = usd * rubPerUsd * (1 + markupBps / 10000);
   return Math.round(rub) * 100;
 }
