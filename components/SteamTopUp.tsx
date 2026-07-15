@@ -38,21 +38,6 @@ function CheckIcon() {
     </svg>
   );
 }
-function BoltIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
-    </svg>
-  );
-}
-function ShieldIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M12 2 4 5v6c0 5 3.4 8.4 8 11 4.6-2.6 8-6 8-11V5l-8-3Zm-1 13-3-3 1.4-1.4L11 12.2l4.6-4.6L17 9l-6 6Z" />
-    </svg>
-  );
-}
-
 // Dark-surface inputs for the tinted Steam block.
 const FIELD_CLASS =
   "mt-1.5 w-full rounded-[14px] border border-white/15 bg-white/[0.06] px-4 py-3 text-white outline-none transition placeholder:text-white/35 focus:border-[var(--signal)]";
@@ -121,25 +106,24 @@ export default function SteamTopUp() {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] bg-[var(--ink)] px-6 py-10 text-white md:px-10 md:py-12">
-      <div className="relative grid items-center gap-10 md:grid-cols-2 md:gap-8">
+    <div className="relative overflow-hidden rounded-[28px] bg-[var(--ink)] px-6 py-8 text-white md:px-10">
+      <div className="relative grid items-center gap-6 md:grid-cols-[1.5fr_1fr] md:gap-8">
         {/* Left: header + form */}
         <div>
           <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-white/60">
             <FaSteam className="h-4 w-4" />
             Steam
           </p>
-          <h2 className="mt-3 font-[family-name:var(--font-unbounded)] text-4xl font-bold leading-[1.02] tracking-[-0.04em] md:text-5xl">
-            Пополнение
-            <br />
-            Steam
+          <h2 className="mt-2 font-[family-name:var(--font-unbounded)] text-4xl font-bold leading-[1.02] tracking-[-0.04em] md:text-5xl">
+            Пополнение Steam
           </h2>
-          <p className="mt-4 max-w-sm text-base leading-7 text-white/60">
+          <p className="mt-3 max-w-md text-sm leading-6 text-white/60 md:text-base">
             Введите логин и сумму — деньги зачислятся на баланс Steam.
           </p>
 
-          <div className="mt-7 space-y-4">
-            <div>
+          {/* login · amount · currency in one full-width row; wraps on narrow widths */}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <div className="min-w-[180px] flex-1">
               <label htmlFor="steam-login" className={LABEL_CLASS}>
                 Steam логин
               </label>
@@ -154,41 +138,38 @@ export default function SteamTopUp() {
                 className={FIELD_CLASS}
               />
             </div>
-
-            <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-3">
-              <div>
-                <label htmlFor="steam-amount" className={LABEL_CLASS}>
-                  Сумма
-                </label>
-                <input
-                  id="steam-amount"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="100"
-                  className={FIELD_CLASS}
-                />
-              </div>
-              <div>
-                <label htmlFor="steam-currency" className={LABEL_CLASS}>
-                  Валюта
-                </label>
-                <select
-                  id="steam-currency"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as TopUpCurrency)}
-                  className={`${FIELD_CLASS} cursor-pointer [&>option]:text-[var(--ink)]`}
-                >
-                  {TOPUP_CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="w-[130px]">
+              <label htmlFor="steam-amount" className={LABEL_CLASS}>
+                Сумма
+              </label>
+              <input
+                id="steam-amount"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="100"
+                className={FIELD_CLASS}
+              />
+            </div>
+            <div className="w-[120px]">
+              <label htmlFor="steam-currency" className={LABEL_CLASS}>
+                Валюта
+              </label>
+              <select
+                id="steam-currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as TopUpCurrency)}
+                className={`${FIELD_CLASS} cursor-pointer [&>option]:text-[var(--ink)]`}
+              >
+                {TOPUP_CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -232,27 +213,19 @@ export default function SteamTopUp() {
           </div>
         </div>
 
-        {/* Right: Steam card with lime glow + floating badges */}
-        <div className="relative hidden min-h-[320px] items-center justify-center md:flex">
+        {/* Right: big Steam card, lifted, with a lime glow. Negative margins let
+            it read larger than the compact block without stretching its height. */}
+        <div className="relative hidden items-center justify-center md:flex">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute h-[280px] w-[280px] rounded-full bg-[var(--signal)] opacity-25 blur-[90px]"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--signal)] opacity-25 blur-[90px]"
           />
           <div
-            className="relative h-[300px] w-[225px]"
-            style={{ transform: "rotate(-6deg)", filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.5))" }}
+            className="relative -my-4 h-[340px] w-[255px]"
+            style={{ transform: "rotate(-6deg)", filter: "drop-shadow(0 22px 44px rgba(0,0,0,0.55))" }}
           >
-            <Image src="/banners/steam.png" alt="Steam" fill sizes="225px" className="object-contain" priority />
+            <Image src="/banners/steam.png" alt="Steam" fill sizes="255px" className="object-contain" priority />
           </div>
-
-          <span className="absolute left-1 top-12 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3.5 py-2 text-xs font-semibold text-white backdrop-blur-sm">
-            <BoltIcon className="h-4 w-4 text-[var(--signal)]" />
-            Мгновенная доставка
-          </span>
-          <span className="absolute bottom-14 right-0 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3.5 py-2 text-xs font-semibold text-white backdrop-blur-sm">
-            <ShieldIcon className="h-4 w-4 text-[var(--signal)]" />
-            Безопасно
-          </span>
         </div>
       </div>
     </div>
