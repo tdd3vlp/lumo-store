@@ -1,0 +1,294 @@
+"use client";
+
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { formatRubles } from "@/lib/pricing/rates";
+import type { Product } from "@/lib/products/types";
+import { useStore } from "@/store/useStore";
+
+// Region presentation (order + flag + label). Only regions we actually stock
+// render — the list is derived from the catalog, not hard-coded.
+const REGION_ORDER = ["US", "UK", "TR", "IN", "PL"];
+const REGION_META: Record<string, { flag: string; label: string }> = {
+  US: { flag: "🇺🇸", label: "США" },
+  UK: { flag: "🇬🇧", label: "Великобритания" },
+  TR: { flag: "🇹🇷", label: "Турция" },
+  IN: { flag: "🇮🇳", label: "Индия" },
+  PL: { flag: "🇵🇱", label: "Польша" },
+};
+const CURRENCY_SYMBOL: Record<string, string> = {
+  USD: "$",
+  GBP: "£",
+  TRY: "₺",
+  INR: "₹",
+  PLN: "zł",
+};
+
+// Static carousel fan. Card artwork per denomination is supplied later; for now
+// every slot uses the brand cover so the layout is ready to drop images into.
+const FAN = [
+  { src: "/banners/playstation.png", label: "$25", pos: -2 },
+  { src: "/banners/playstation.png", label: "$100", pos: 1 },
+  { src: "/banners/playstation.png", label: "$75", pos: 2 },
+  { src: "/banners/playstation.png", label: "$50", pos: 0 },
+];
+
+function amountLabel(amount: number, currency: string): string {
+  const sym = CURRENCY_SYMBOL[currency] ?? "";
+  const n = amount.toLocaleString("ru-RU");
+  return currency === "PLN" ? `${n} ${sym}` : `${sym}${n}`;
+}
+
+function ArrowIcon({ dir }: { dir: "prev" | "next" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
+      <path d={dir === "prev" ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-4 w-4" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
+    </svg>
+  );
+}
+function CartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-4 w-4" aria-hidden="true">
+      <path d="M6.5 8.5h11l-1 10.5a2 2 0 0 1-2 1.5h-5a2 2 0 0 1-2-1.5L6.5 8.5Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 9V7.5a3 3 0 0 1 6 0V9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function PlayStationLogo() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+      <path d="M8.98 2.6v17.55l3.92 1.26V6.69c0-.69.3-1.15.79-.99.64.18.76.81.76 1.5v5.88c2.44 1.19 4.36 0 4.36-3.15 0-3.24-1.13-4.68-4.44-5.83-1.3-.45-3.73-1.19-5.39-1.5zM13.64 18.84l6.3-2.28c.71-.26.82-.62.24-.82-.59-.19-1.64-.14-2.36.12l-4.2 1.5v-2.37l.24-.08s1.2-.42 2.91-.62c1.7-.18 3.79.03 5.44.66 1.85.6 2.04 1.47 1.58 2.07-.47.6-1.62 1.04-1.62 1.04l-8.54 3.1v-2.34zM1.8 18.6c-1.9-.55-2.21-1.67-1.35-2.32.8-.59 2.16-1.05 2.16-1.05l5.62-2.01v2.31l-4.04 1.45c-.7.27-.82.63-.24.82.59.2 1.64.15 2.34-.12l1.94-.7v2.07c-.12.03-.26.04-.39.07-1.94.33-4-.2-6.04-.48z" />
+    </svg>
+  );
+}
+
+export default function PlayStationGiftCards({ products }: { products: Product[] }) {
+  const router = useRouter();
+  const addToCart = useStore((state) => state.addToCart);
+
+  function cartItem(p: Product) {
+    return {
+      denominationId: p.denominationId,
+      productType: p.productType,
+      title: p.displayName,
+      region: p.region,
+      currency: p.currency,
+      amountMajor: p.amountMajor,
+      priceMinor: p.salePriceMinor,
+      image: p.image,
+    };
+  }
+
+  const regions = useMemo(() => {
+    const present = new Set(products.map((p) => p.region));
+    return REGION_ORDER.filter((r) => present.has(r));
+  }, [products]);
+
+  const [region, setRegion] = useState(() => regions[0] ?? "US");
+
+  const amounts = useMemo(
+    () =>
+      products
+        .filter((p) => p.region === region)
+        .sort((a, b) => a.amountMajor - b.amountMajor),
+    [products, region],
+  );
+
+  const [amountId, setAmountId] = useState<string | null>(null);
+  const selected =
+    amounts.find((p) => p.denominationId === amountId) ?? amounts[0] ?? null;
+
+  function pickRegion(r: string) {
+    setRegion(r);
+    setAmountId(null);
+  }
+
+  return (
+    <div>
+      {/* Header + static carousel */}
+      <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-10">
+        <div>
+          <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            <PlayStationLogo />
+            PlayStation
+          </p>
+          <h2 className="mt-3 font-[family-name:var(--font-unbounded)] text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--ink)] md:text-5xl">
+            PlayStation
+            <br />
+            Gift Cards
+          </h2>
+          <p className="mt-4 max-w-sm text-base leading-7 text-[var(--text-muted)]">
+            Пополните кошелёк PSN. Выберите регион и сумму, которые вам подходят.
+          </p>
+        </div>
+
+        <div className="relative">
+          <div className="absolute right-0 top-0 z-20 flex gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)]/50" aria-hidden="true">
+              <ArrowIcon dir="prev" />
+            </span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)]/50" aria-hidden="true">
+              <ArrowIcon dir="next" />
+            </span>
+          </div>
+          <div className="relative mx-auto h-[240px] w-full max-w-[440px] md:h-[300px]" style={{ perspective: 1400 }} aria-hidden="true">
+            {FAN.map((card, i) => {
+              const abs = Math.abs(card.pos);
+              return (
+                <div
+                  key={i}
+                  className="absolute left-1/2 top-1/2 aspect-[3/4] w-[150px] md:w-[190px]"
+                  style={{
+                    transform: `translate(-50%, -50%) translateX(${card.pos * 92}px) rotateY(${card.pos === 0 ? 0 : card.pos > 0 ? -28 : 28}deg) scale(${card.pos === 0 ? 1 : Math.max(0.72, 0.88 - (abs - 1) * 0.08)})`,
+                    zIndex: 10 - abs,
+                    filter: "drop-shadow(0 14px 24px rgba(21,19,27,0.22))",
+                  }}
+                >
+                  <Image src={card.src} alt="" fill sizes="190px" className="object-contain" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* 1. Region */}
+      <div className="mt-10">
+        <p className="text-sm font-bold text-[var(--ink)]">1. Выберите регион</p>
+        <div className="mt-3 flex flex-wrap gap-2.5">
+          {regions.map((r) => {
+            const meta = REGION_META[r] ?? { flag: "🎮", label: r };
+            const active = r === region;
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => pickRegion(r)}
+                aria-pressed={active}
+                className={`inline-flex items-center gap-2 rounded-[14px] border px-4 py-2.5 text-sm font-semibold transition ${
+                  active
+                    ? "border-[var(--ink)] bg-[var(--signal)] text-[var(--ink)]"
+                    : "border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)] hover:border-[var(--ink)]/40"
+                }`}
+              >
+                <span aria-hidden="true">{meta.flag}</span>
+                {meta.label}
+                {active && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-3.5 w-3.5">
+                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Amount */}
+      <div className="mt-6">
+        <p className="text-sm font-bold text-[var(--ink)]">2. Выберите сумму</p>
+        <div className="mt-3 flex flex-wrap gap-2.5">
+          {amounts.map((p) => {
+            const active = selected?.denominationId === p.denominationId;
+            return (
+              <button
+                key={p.denominationId}
+                type="button"
+                onClick={() => setAmountId(p.denominationId)}
+                aria-pressed={active}
+                className={`inline-flex min-w-[84px] items-center justify-center gap-1.5 rounded-[14px] border px-4 py-2.5 text-sm font-semibold transition ${
+                  active
+                    ? "border-[var(--ink)] bg-[var(--signal)] text-[var(--ink)]"
+                    : "border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)] hover:border-[var(--ink)]/40"
+                }`}
+              >
+                {amountLabel(p.amountMajor, p.currency)}
+                {active && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-3.5 w-3.5">
+                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Selected product summary */}
+      {selected && (
+        <div className="mt-6 rounded-[24px] border border-[var(--line)] bg-[var(--paper-strong)] p-5 md:p-6">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            <div className="relative h-[150px] w-[120px] shrink-0 self-center md:self-start">
+              <Image
+                src={selected.image || "/banners/playstation.png"}
+                alt=""
+                fill
+                sizes="120px"
+                className="object-contain"
+                style={{ filter: "drop-shadow(0 10px 18px rgba(21,19,27,0.18))" }}
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="font-[family-name:var(--font-unbounded)] text-lg font-bold leading-snug text-[var(--ink)]">
+                PlayStation Store Card
+                <br />
+                {amountLabel(selected.amountMajor, selected.currency)} · {selected.currency} (
+                {REGION_META[selected.region]?.label ?? selected.region})
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-[var(--text-muted)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
+                  <span aria-hidden="true">{REGION_META[selected.region]?.flag ?? "🎮"}</span>
+                  Регион {REGION_META[selected.region]?.label ?? selected.region}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
+                  ⚡ Цифровой код
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-3.5 w-3.5 text-[#1e8a4c]">
+                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Мгновенная доставка
+                </span>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-3 md:w-[220px]">
+              <p className="font-[family-name:var(--font-unbounded)] text-2xl font-bold tracking-[-0.03em] text-[var(--ink)] md:text-right">
+                {selected.salePriceMinor != null ? formatRubles(selected.salePriceMinor) : "Цена уточняется"}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  addToCart(cartItem(selected));
+                  router.push("/cart");
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--signal-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal)]"
+              >
+                Купить
+                <LockIcon />
+              </button>
+              <button
+                type="button"
+                onClick={() => addToCart(cartItem(selected))}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--line-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
+              >
+                В корзину
+                <CartIcon />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

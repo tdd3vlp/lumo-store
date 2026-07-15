@@ -1,6 +1,8 @@
 import Header from "@/components/Header";
 import HeroFeatured from "@/components/HeroFeatured";
+import PlayStationGiftCards from "@/components/PlayStationGiftCards";
 import SteamTopUp from "@/components/SteamTopUp";
+import { allowedRegions } from "@/lib/products/brands";
 import { getPublishedProducts } from "@/lib/products/storefront";
 import type { Product } from "@/lib/products/types";
 
@@ -13,6 +15,11 @@ export default async function Home() {
   } catch {
     products = [];
   }
+
+  const psRegions = allowedRegions("playstation");
+  const psProducts = products.filter(
+    (p) => p.productType === "playstation" && (psRegions === null || psRegions.includes(p.region)),
+  );
 
   // The hero carousel is brand navigation built on static brand cards, so it
   // renders regardless of catalog state — it must never blank out just because
@@ -32,6 +39,15 @@ export default async function Home() {
       >
         <SteamTopUp />
       </section>
+
+      {psProducts.length > 0 && (
+        <section
+          id="playstation"
+          className="mx-auto mt-14 max-w-7xl scroll-mt-24 px-4 md:mt-20 md:px-6 lg:px-8"
+        >
+          <PlayStationGiftCards products={psProducts} />
+        </section>
+      )}
     </main>
   );
 }
