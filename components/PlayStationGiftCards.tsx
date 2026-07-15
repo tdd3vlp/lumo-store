@@ -268,7 +268,7 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
       {/* Selected product summary */}
       {selected && (
         <div className="mt-6 rounded-[24px] border border-[var(--line)] bg-[var(--paper-strong)] p-5 md:p-6">
-          <div className="flex flex-col gap-6 md:flex-row md:items-stretch">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
             <div className="relative aspect-[3/4] w-[170px] shrink-0 self-center md:w-[190px] md:self-start">
               <Image
                 src={REGION_CARD[selected.region] ?? selected.image ?? "/banners/playstation.png"}
@@ -303,30 +303,28 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
               </div>
             </div>
 
-            <div className="flex shrink-0 flex-col md:w-[220px]">
+            <div className="flex shrink-0 flex-col gap-3 md:w-[220px]">
               <p className="font-[family-name:var(--font-unbounded)] text-2xl font-bold tracking-[-0.03em] text-[var(--ink)] md:text-right">
                 {selected.salePriceMinor != null ? formatRubles(selected.salePriceMinor) : "Цена уточняется"}
               </p>
-              <div className="mt-4 flex flex-col gap-3 md:mt-auto md:pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    addToCart(cartItem(selected));
-                    router.push("/cart");
-                  }}
-                  className="inline-flex items-center justify-center rounded-full bg-[var(--signal-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal)]"
-                >
-                  Купить
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addToCart(cartItem(selected))}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--line-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
-                >
-                  В корзину
-                  <CartIcon />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  addToCart(cartItem(selected));
+                  router.push("/cart");
+                }}
+                className="inline-flex items-center justify-center rounded-full bg-[var(--signal-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal)]"
+              >
+                Купить
+              </button>
+              <button
+                type="button"
+                onClick={() => addToCart(cartItem(selected))}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--line-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
+              >
+                В корзину
+                <CartIcon />
+              </button>
             </div>
           </div>
         </div>
