@@ -23,6 +23,38 @@ export type SteamTopUpQuote = {
 
 const GENERIC_ERROR = "Не удалось проверить логин Steam. Попробуйте позже.";
 
+// The form validates on every keystroke, so without caching a single user would
+// hammer NS.gifts (which then rate-limits / flakes). Cache the two upstream
+// reads that don't vary per request: the daily FX table, and a login's
+// existence for a short window. This collapses a burst of checks into one NS
+// round-trip and removes the intermittent "попробуйте позже" flakiness.
+const FX_TTL_MS = 30 * 60 * 1000;
+const ACCOUNT_TTL_MS = 60 * 1000;
+const fxCache = new Map<number, { at: number; rates: FxRates }>();
+const accountCache = new Map<string, { at: number; status: boolean }>();
+
+async function cachedFx(serviceId: number): Promise<FxRates> {
+  const hit = fxCache.get(serviceId);
+  if (hit && Date.now() - hit.at < FX_TTL_MS) return hit.rates;
+  const { rates } = await getExchangeRate(serviceId);
+  fxCache.set(serviceId, { at: Date.now(), rates });
+  return rates;
+}
+
+async function cachedCheckUser(login: string): Promise<boolean> {
+  const now = Date.now();
+  const hit = accountCache.get(login);
+  if (hit && now - hit.at < ACCOUNT_TTL_MS) return hit.status;
+  const { accountStatus } = await checkSteamUser(login);
+  if (accountCache.size > 2000) {
+    for (const [key, v] of accountCache) {
+      if (now - v.at >= ACCOUNT_TTL_MS) accountCache.delete(key);
+    }
+  }
+  accountCache.set(login, { at: now, status: accountStatus });
+  return accountStatus;
+}
+
 // NS.gifts is IP-whitelisted, so its API is unreachable from a dev machine.
 // With STEAM_TOPUP_DEV_STUB=1 we stub the account check + FX so the flow can be
 // exercised locally; it is never consulted in production.
@@ -62,16 +94,15 @@ export async function quoteSteamTopUp(input: {
 
   const stub = devStub();
   try {
-    const [account, fxResponse, pricing] = await Promise.all([
-      stub ? { accountStatus: stub.accountStatusFor(login) } : checkSteamUser(login),
-      stub ? { rates: stub.fx } : getExchangeRate(STEAM_TOPUP_SERVICE_ID),
+    const [accountStatus, fx, pricing] = await Promise.all([
+      stub ? stub.accountStatusFor(login) : cachedCheckUser(login),
+      stub ? stub.fx : cachedFx(STEAM_TOPUP_SERVICE_ID),
       getNsPricing(),
     ]);
 
-    const fx: FxRates = fxResponse.rates;
     const { min, max } = topUpBounds(input.currency, fx);
 
-    if (!account.accountStatus) {
+    if (!accountStatus) {
       return { ...empty, min, max, canRefill: false, error: "Аккаунт не найден." };
     }
     if (!isValidTopUpAmount(input.amount, input.currency, fx)) {

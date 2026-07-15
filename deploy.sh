@@ -38,8 +38,6 @@ echo "→ Копирование статики и перезапуск..."
 ssh -i $KEY -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=20 $SERVER "
   sudo -u lumo cp -r $APP/.next/static $APP/.next/standalone/.next/static
   sudo -u lumo cp -r $APP/public $APP/.next/standalone/public
-  sudo -u lumo cp -r $APP/node_modules/playwright-core/. $APP/.next/standalone/node_modules/playwright-core/
-  sudo -u lumo cp -r $APP/node_modules/playwright/. $APP/.next/standalone/node_modules/playwright/
   sudo systemctl restart lumo-store
   sleep 2
   sudo systemctl is-active lumo-store
