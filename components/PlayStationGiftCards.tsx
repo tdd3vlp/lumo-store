@@ -3,20 +3,40 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import GB from "country-flag-icons/react/3x2/GB";
+import IN from "country-flag-icons/react/3x2/IN";
+import PL from "country-flag-icons/react/3x2/PL";
+import TR from "country-flag-icons/react/3x2/TR";
+import US from "country-flag-icons/react/3x2/US";
 import { formatRubles } from "@/lib/pricing/rates";
 import type { Product } from "@/lib/products/types";
 import { useStore } from "@/store/useStore";
 
-// Region presentation (order + flag + label). Only regions we actually stock
-// render — the list is derived from the catalog, not hard-coded.
+// Region presentation (order + label). Only regions we actually stock render —
+// the list is derived from the catalog, not hard-coded.
 const REGION_ORDER = ["US", "UK", "TR", "IN", "PL"];
-const REGION_META: Record<string, { flag: string; label: string }> = {
-  US: { flag: "🇺🇸", label: "США" },
-  UK: { flag: "🇬🇧", label: "Великобритания" },
-  TR: { flag: "🇹🇷", label: "Турция" },
-  IN: { flag: "🇮🇳", label: "Индия" },
-  PL: { flag: "🇵🇱", label: "Польша" },
+const REGION_META: Record<string, { label: string }> = {
+  US: { label: "США" },
+  UK: { label: "Великобритания" },
+  TR: { label: "Турция" },
+  IN: { label: "Индия" },
+  PL: { label: "Польша" },
 };
+
+// Crisp SVG flags (country-flag-icons) instead of OS emoji. UK maps to GB.
+const FLAG: Record<string, React.ComponentType<{ className?: string; title?: string }>> = {
+  US,
+  UK: GB,
+  TR,
+  IN,
+  PL,
+};
+
+function RegionFlag({ region, className }: { region: string; className?: string }) {
+  const Flag = FLAG[region];
+  if (!Flag) return null;
+  return <Flag className={className} />;
+}
 const CURRENCY_SYMBOL: Record<string, string> = {
   USD: "$",
   GBP: "£",
@@ -47,11 +67,17 @@ function ArrowIcon({ dir }: { dir: "prev" | "next" }) {
     </svg>
   );
 }
-function LockIcon() {
+function BoltIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-4 w-4" aria-hidden="true">
-      <rect x="5" y="11" width="14" height="9" rx="2" />
-      <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
+    </svg>
+  );
+}
+function CheckBadgeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.7 7.7-5.4 5.4a1 1 0 0 1-1.4 0l-2.6-2.6a1 1 0 1 1 1.4-1.4l1.9 1.9 4.7-4.7a1 1 0 1 1 1.4 1.4Z" />
     </svg>
   );
 }
@@ -192,7 +218,7 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
         <p className="text-sm font-bold text-[var(--ink)]">1. Выберите регион</p>
         <div className="mt-3 flex flex-wrap gap-2.5">
           {regions.map((r) => {
-            const meta = REGION_META[r] ?? { flag: "🎮", label: r };
+            const label = REGION_META[r]?.label ?? r;
             const active = r === region;
             return (
               <button
@@ -206,13 +232,8 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
                     : "border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)] hover:border-[var(--ink)]/40"
                 }`}
               >
-                <span aria-hidden="true">{meta.flag}</span>
-                {meta.label}
-                {active && (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-3.5 w-3.5">
-                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
+                <RegionFlag region={r} className="w-5 shrink-0 rounded-[3px]" />
+                {label}
               </button>
             );
           })}
@@ -231,18 +252,13 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
                 type="button"
                 onClick={() => setAmountId(p.denominationId)}
                 aria-pressed={active}
-                className={`inline-flex min-w-[84px] items-center justify-center gap-1.5 rounded-[14px] border px-4 py-2.5 text-sm font-semibold transition ${
+                className={`inline-flex min-w-[84px] items-center justify-center rounded-[14px] border px-4 py-2.5 text-sm font-semibold transition ${
                   active
                     ? "border-[var(--ink)] bg-[var(--signal)] text-[var(--ink)]"
                     : "border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)] hover:border-[var(--ink)]/40"
                 }`}
               >
                 {amountLabel(p.amountMajor, p.currency)}
-                {active && (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-3.5 w-3.5">
-                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
               </button>
             );
           })}
@@ -252,7 +268,7 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
       {/* Selected product summary */}
       {selected && (
         <div className="mt-6 rounded-[24px] border border-[var(--line)] bg-[var(--paper-strong)] p-5 md:p-6">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+          <div className="flex flex-col gap-6 md:flex-row md:items-stretch">
             <div className="relative aspect-[3/4] w-[170px] shrink-0 self-center md:w-[190px] md:self-start">
               <Image
                 src={REGION_CARD[selected.region] ?? selected.image ?? "/banners/playstation.png"}
@@ -271,47 +287,46 @@ export default function PlayStationGiftCards({ products }: { products: Product[]
                 {amountLabel(selected.amountMajor, selected.currency)} · {selected.currency} (
                 {REGION_META[selected.region]?.label ?? selected.region})
               </p>
-              <div className="mt-4 flex flex-col items-start gap-2 text-sm font-semibold text-[var(--text-muted)]">
-                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--card-surface)] px-3.5 py-2">
-                  <span aria-hidden="true">{REGION_META[selected.region]?.flag ?? "🎮"}</span>
+              <div className="mt-3 flex flex-col items-start gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
+                  <RegionFlag region={selected.region} className="w-4 shrink-0 rounded-[2px]" />
                   Регион {REGION_META[selected.region]?.label ?? selected.region}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--card-surface)] px-3.5 py-2">
-                  <span aria-hidden="true">⚡</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
+                  <BoltIcon className="h-3.5 w-3.5 text-[#eab308]" />
                   Цифровой код
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--card-surface)] px-3.5 py-2">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-4 w-4 text-[#1e8a4c]">
-                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card-surface)] px-3 py-1.5">
+                  <CheckBadgeIcon className="h-3.5 w-3.5 text-[#1e8a4c]" />
                   Мгновенная доставка
                 </span>
               </div>
             </div>
 
-            <div className="flex shrink-0 flex-col gap-3 md:w-[220px]">
+            <div className="flex shrink-0 flex-col md:w-[220px]">
               <p className="font-[family-name:var(--font-unbounded)] text-2xl font-bold tracking-[-0.03em] text-[var(--ink)] md:text-right">
                 {selected.salePriceMinor != null ? formatRubles(selected.salePriceMinor) : "Цена уточняется"}
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  addToCart(cartItem(selected));
-                  router.push("/cart");
-                }}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--signal-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal)]"
-              >
-                Купить
-                <LockIcon />
-              </button>
-              <button
-                type="button"
-                onClick={() => addToCart(cartItem(selected))}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--line-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
-              >
-                В корзину
-                <CartIcon />
-              </button>
+              <div className="mt-4 flex flex-col gap-3 md:mt-auto md:pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    addToCart(cartItem(selected));
+                    router.push("/cart");
+                  }}
+                  className="inline-flex items-center justify-center rounded-full bg-[var(--signal-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal)]"
+                >
+                  Купить
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addToCart(cartItem(selected))}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--line-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
+                >
+                  В корзину
+                  <CartIcon />
+                </button>
+              </div>
             </div>
           </div>
         </div>
