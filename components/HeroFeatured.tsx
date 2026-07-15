@@ -1,28 +1,16 @@
+import BrandIcon from "@/components/BrandIcon";
 import HeroCarousel from "@/components/HeroCarousel";
 import type { Product } from "@/lib/products/types";
 
-function ArrowRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
-      <path d="M8 5.5v13l11-6.5-11-6.5Z" />
-    </svg>
-  );
-}
+// Each service jumps to its on-page block when one exists (#playstation,
+// #steam-topup); the rest fall back to their catalog page until a block is built.
+const SERVICES: Array<{ type: string; label: string; href: string }> = [
+  { type: "playstation", label: "PlayStation", href: "#playstation" },
+  { type: "xbox", label: "Xbox", href: "/catalog/xbox" },
+  { type: "steam", label: "Steam", href: "#steam-topup" },
+  { type: "nintendo", label: "Nintendo", href: "/catalog/nintendo" },
+  { type: "apple", label: "App Store", href: "/catalog/apple" },
+];
 
 export default function HeroFeatured({ products }: { products: Product[] }) {
   return (
@@ -46,25 +34,22 @@ export default function HeroFeatured({ products }: { products: Product[] }) {
           многое другое.
         </p>
 
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <a
-            href="#carousel"
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--signal-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal)]"
-          >
-            Смотреть каталог
-            <ArrowRightIcon />
-          </a>
-          <a
-            href="#steam-topup"
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--line-strong)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--line-strong)]">
-              <PlayIcon />
-            </span>
-            Пополнить Steam
-          </a>
+        {/* Catalog quick-nav: pick a service to jump to its block */}
+        <div className="mt-8">
+          <p className="text-sm font-bold text-[var(--ink)]">Смотреть каталог</p>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 rounded-[20px] border border-[var(--line)] bg-[var(--paper-strong)] p-2">
+            {SERVICES.map((s) => (
+              <a
+                key={s.type}
+                href={s.href}
+                className="inline-flex items-center gap-2 rounded-[14px] px-4 py-3 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--card-surface)]"
+              >
+                <BrandIcon type={s.type} />
+                {s.label}
+              </a>
+            ))}
+          </div>
         </div>
-
       </div>
 
       <HeroCarousel products={products} />

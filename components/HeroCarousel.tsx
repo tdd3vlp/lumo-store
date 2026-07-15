@@ -2,8 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import BrandIcon from "@/components/BrandIcon";
-import { productTypeLabel } from "@/lib/products/labels";
 import type { Product } from "@/lib/products/types";
 
 type FeaturedItem = {
@@ -180,52 +178,6 @@ export default function HeroCarousel({ products }: { products: Product[] }) {
             }`}
           />
         ))}
-      </div>
-
-      <div className="mt-5 flex items-center justify-center gap-1 rounded-full border border-[var(--line)] bg-[var(--paper-strong)] p-1.5 shadow-sm mx-auto w-fit">
-        <button
-          type="button"
-          onClick={() => setActive(0)}
-          aria-current={active === 0}
-          aria-label="Все"
-          className={`flex h-9 items-center gap-1.5 rounded-full pl-2.5 pr-3 text-xs font-bold transition ${
-            active === 0 ? "bg-[var(--signal)] text-[var(--ink)]" : "text-[var(--text-muted)] hover:bg-black/5"
-          }`}
-        >
-          <BrandIcon type="all" />
-          Все
-        </button>
-
-        {["playstation", "xbox", "steam", "nintendo", "apple"].map((type) => {
-          const i = cards.findIndex((c) => c.type === type);
-          if (i === -1) return null;
-          const isActive = i === active;
-          return (
-            <button
-              key={type}
-              type="button"
-              onClick={() => setActive(i)}
-              aria-current={isActive}
-              aria-label={productTypeLabel(type)}
-              className={`flex h-9 w-9 items-center justify-center rounded-full transition ${
-                isActive ? "bg-[var(--signal)]" : "hover:bg-black/5"
-              }`}
-            >
-              <BrandIcon type={type} />
-            </button>
-          );
-        })}
-
-        <span
-          aria-hidden="true"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)]/50"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="h-[18px] w-[18px]">
-            <circle cx="5" cy="12" r="1.6" />
-            <circle cx="12" cy="12" r="1.6" />
-            <circle cx="19" cy="12" r="1.6" />
-          </svg>
-        </span>
       </div>
     </div>
   );

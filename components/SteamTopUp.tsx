@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FaSteam } from "react-icons/fa6";
 import { formatRubles } from "@/lib/pricing/rates";
 import {
   type TopUpCurrency,
@@ -104,19 +105,22 @@ export default function SteamTopUp() {
   }
 
   return (
-    <div className="rounded-[24px] border border-[var(--line)] bg-[var(--paper-strong)] p-6 md:p-8">
-      <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-[var(--signal-strong)]" aria-hidden="true" />
-        <h2 className="font-[family-name:var(--font-unbounded)] text-2xl font-bold tracking-[-0.03em] text-[var(--ink)] md:text-3xl">
-          Пополнение Steam
-        </h2>
-      </div>
-      <p className="mt-2 text-sm text-[var(--text-muted)]">
+    <div>
+      <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+        <FaSteam className="h-4 w-4" />
+        Steam
+      </p>
+      <h2 className="mt-3 font-[family-name:var(--font-unbounded)] text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--ink)] md:text-5xl">
+        Пополнение
+        <br />
+        Steam
+      </h2>
+      <p className="mt-4 max-w-sm text-base leading-7 text-[var(--text-muted)]">
         Введите логин и сумму — деньги зачислятся на баланс Steam.
       </p>
 
       {/* Login · amount · currency, all on one row (stacks on mobile) */}
-      <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_128px]">
+      <div className="mt-8 grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_128px]">
         <div>
           <label htmlFor="steam-login" className={LABEL_CLASS}>
             Steam логин
