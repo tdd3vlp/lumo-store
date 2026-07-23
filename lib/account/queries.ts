@@ -1,5 +1,4 @@
 import { sql } from "@/lib/db";
-import { decryptGiftCardCode } from "@/lib/gift-cards/crypto";
 import { decryptPsAccount } from "@/lib/ps-accounts/crypto";
 
 export type AccountOverview = {
@@ -46,8 +45,18 @@ export type AccountOverview = {
       title: string | null;
       /** Storefront product type (apple/xbox/…) → maps to the activation guide. */
       productType: string | null;
-      /** Delivered gift-card codes for this line (decrypted); empty until fulfilled. */
-      codes: string[];
+      /**
+       * How many gift-card codes are delivered for this line. The codes
+       * themselves are NOT loaded here — they are decrypted on demand behind the
+       * authenticated reveal endpoint (POST /api/account/orders/reveal), so the
+       * plaintext never enters the initial page HTML/JSON. 0 until fulfilled.
+       */
+      giftCardCodeCount: number;
+      /**
+       * Delivered PlayStation-account credentials for this line (decrypted),
+       * shown directly in the ЛК. Empty for non-account lines / until fulfilled.
+       */
+      psAccountLines: string[];
     }>;
   }>;
 };
@@ -128,39 +137,30 @@ export async function getAccountOverview(
         `
       : [];
 
-  // Delivered gift-card codes for these items — decrypted here so the account
-  // page can reveal them (the account is the delivery of record).
+  // Gift-card codes are NOT decrypted here. We only count how many are delivered
+  // per line so the page can show the "Получить код" button; the plaintext is
+  // revealed on demand behind the authenticated, journalled reveal endpoint —
+  // so it never enters the initial HTML/JSON.
   const itemIds = items.map((item) => item.id);
-  const codeRows =
+  const countRows =
     itemIds.length > 0
       ? await sql`
-          SELECT
-            deliveries.order_item_id,
-            cards.code_ciphertext,
-            cards.code_iv,
-            cards.code_auth_tag
-          FROM fulfillment_deliveries deliveries
-          JOIN gift_card_inventory cards ON cards.id = deliveries.gift_card_id
-          WHERE deliveries.order_item_id IN ${sql(itemIds)}
-          ORDER BY deliveries.created_at
+          SELECT order_item_id, COUNT(*)::int AS count
+          FROM fulfillment_deliveries
+          WHERE order_item_id IN ${sql(itemIds)}
+          GROUP BY order_item_id
         `
       : [];
-  const codesByItem = new Map<string, string[]>();
-  for (const row of codeRows) {
-    const code = decryptGiftCardCode({
-      ciphertext: row.code_ciphertext,
-      iv: row.code_iv,
-      authTag: row.code_auth_tag,
-    });
-    const list = codesByItem.get(String(row.order_item_id)) ?? [];
-    list.push(code);
-    codesByItem.set(String(row.order_item_id), list);
+  const countByItem = new Map<string, number>();
+  for (const row of countRows) {
+    countByItem.set(String(row.order_item_id), Number(row.count));
   }
+  const psLinesByItem = new Map<string, string[]>();
 
   // Delivered PlayStation-account credentials for these items — decrypted here
-  // so the account page can reveal them, reusing the same per-item "codes" slot
-  // as gift cards. Each field is its own line for readability. The ЛК (behind
-  // auth) is the delivery of record for accounts; they are never emailed.
+  // and shown directly in the account (these are NOT gated behind the reveal
+  // flow). Each field is its own line for readability. The ЛК (behind auth) is
+  // the delivery of record for accounts; they are never emailed.
   const psRows =
     itemIds.length > 0
       ? await sql`
@@ -188,9 +188,9 @@ export async function getAccountOverview(
       ...(fields.birthdate ? [`Дата рождения: ${fields.birthdate}`] : []),
     ];
     const key = String(row.reserved_order_item_id);
-    const list = codesByItem.get(key) ?? [];
+    const list = psLinesByItem.get(key) ?? [];
     list.push(...lines);
-    codesByItem.set(key, list);
+    psLinesByItem.set(key, list);
   }
 
   return {
@@ -256,7 +256,8 @@ export async function getAccountOverview(
           title: item.title === null ? null : String(item.title),
           productType:
             item.product_type === null ? null : String(item.product_type),
-          codes: codesByItem.get(String(item.id)) ?? [],
+          giftCardCodeCount: countByItem.get(String(item.id)) ?? 0,
+          psAccountLines: psLinesByItem.get(String(item.id)) ?? [],
         })),
     })),
   };

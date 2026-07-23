@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signOut, auth } from "@/auth";
 import AuthModal from "@/components/AuthModal";
 import Header from "@/components/Header";
+import OrderCodeReveal from "@/components/OrderCodeReveal";
 import { type AccountOverview, getAccountOverview } from "@/lib/account/queries";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { ACTIVATION_GUIDES } from "@/lib/instructions";
@@ -97,10 +98,15 @@ function OrderCard({ order }: { order: Order }) {
         </div>
       </div>
 
-      {order.items.some((item) => item.codes.length > 0) && (
+      {order.items.some(
+        (item) => item.giftCardCodeCount > 0 || item.psAccountLines.length > 0,
+      ) && (
         <div className="mt-4 space-y-4 border-t border-[var(--line)] pt-4">
           {order.items
-            .filter((item) => item.codes.length > 0)
+            .filter(
+              (item) =>
+                item.giftCardCodeCount > 0 || item.psAccountLines.length > 0,
+            )
             .map((item) => {
               const label =
                 item.title ??
@@ -110,18 +116,32 @@ function OrderCard({ order }: { order: Order }) {
                 item.productType && GUIDE_SLUGS.has(item.productType)
                   ? item.productType
                   : null;
+
+              // Gift-card codes are gated behind the reveal + audit flow.
+              if (item.giftCardCodeCount > 0) {
+                return (
+                  <OrderCodeReveal
+                    key={item.id}
+                    orderItemId={item.id}
+                    label={label}
+                    guideSlug={guide}
+                  />
+                );
+              }
+
+              // PlayStation-account credentials — shown directly.
               return (
                 <div key={item.id}>
                   <p className="text-sm font-semibold text-[var(--ink)]">
                     {label}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-2">
-                    {item.codes.map((code, i) => (
+                    {item.psAccountLines.map((line, i) => (
                       <code
                         key={`${item.id}-${i}`}
                         className="select-all rounded-[10px] border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2 font-mono text-sm font-bold tracking-wide text-[var(--ink)]"
                       >
-                        {code}
+                        {line}
                       </code>
                     ))}
                   </div>
@@ -367,6 +387,12 @@ export default async function ProfilePage() {
                 className="inline-flex rounded-[13px] border border-[var(--line-strong)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
               >
                 Игры и предзаказы
+              </Link>
+              <Link
+                href="/admin/digital-access"
+                className="inline-flex rounded-[13px] border border-[var(--line-strong)] px-5 py-3 font-extrabold text-[var(--ink)] transition hover:border-[var(--ink)]"
+              >
+                История доступа к коду
               </Link>
             </div>
           </section>

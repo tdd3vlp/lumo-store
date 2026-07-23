@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { recordOrderPaid } from "@/lib/audit/order-paid";
 import { sql } from "@/lib/db";
 import { fulfillOrder } from "@/lib/payments/fulfillment";
 import {
@@ -40,11 +41,15 @@ export async function POST(request: Request) {
   const rawPayload: Record<string, string> = {};
   for (const [k, v] of form) rawPayload[k] = v;
 
-  let paidOrderId: string | null = null;
+  let paid: {
+    id: string;
+    customerId: string | null;
+    paidAt: string;
+  } | null = null;
   try {
-    paidOrderId = await sql.begin(async (tx) => {
+    paid = await sql.begin(async (tx) => {
       const [order] = await tx`
-        SELECT id, status, total_minor, currency
+        SELECT id, status, total_minor, currency, customer_id
         FROM orders
         WHERE public_id = ${invId}
         FOR UPDATE
@@ -86,12 +91,20 @@ export async function POST(request: Request) {
       }
 
       if (status === "SUCCESS" && enough) {
-        await tx`
+        const [updated] = await tx`
           UPDATE orders
           SET status = 'paid', paid_at = now(), updated_at = now()
           WHERE id = ${order.id}
+          RETURNING paid_at
         `;
-        return String(order.id);
+        // ORDER_PAID is journalled AFTER commit (best-effort), never inside this
+        // transaction — audit must not be able to block payment confirmation.
+        return {
+          id: String(order.id),
+          customerId:
+            order.customer_id === null ? null : String(order.customer_id),
+          paidAt: new Date(updated.paid_at).toISOString(),
+        };
       }
       if (status === "SUCCESS" || status === "OVERPAID" || status === "UNDERPAID") {
         // Paid, but amount/status needs a human (under/overpaid or short pay).
@@ -111,15 +124,23 @@ export async function POST(request: Request) {
     return new Response("error", { status: 500 });
   }
 
-  // Kick off fulfilment after the 200 is sent (warehouse-first → NS.gifts). The
-  // reconcile worker retries anything that fails here.
-  if (paidOrderId) {
-    const id = paidOrderId;
-    after(() =>
-      fulfillOrder(id).catch((e) =>
-        console.error(`[paypalych/callback] fulfil ${id}: ${e?.message ?? e}`),
-      ),
-    );
+  // After the 200 is sent: journal ORDER_PAID (best-effort, never blocks) and
+  // kick off fulfilment (warehouse-first → NS.gifts). The reconcile worker
+  // retries fulfilment and backfills ORDER_PAID for anything lost to a crash
+  // between commit and here.
+  if (paid) {
+    const p = paid;
+    after(async () => {
+      await recordOrderPaid({
+        orderId: p.id,
+        customerId: p.customerId,
+        paidAt: new Date(p.paidAt),
+        trsId: trsId || null,
+      });
+      await fulfillOrder(p.id).catch((e) =>
+        console.error(`[paypalych/callback] fulfil ${p.id}: ${e?.message ?? e}`),
+      );
+    });
   }
 
   return new Response("OK", { status: 200 });

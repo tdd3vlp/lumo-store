@@ -1,5 +1,5 @@
 import type {
-  GiftCardDeliveryEmail,
+  GiftCardReadyEmail,
   PsAccountReadyEmail,
   TopUpConfirmationEmail,
 } from "./types";
@@ -17,7 +17,6 @@ const SUPPORT_URL = `${SITE}/support`;
 // Brand tokens, mirrored from the storefront.
 const FONT =
   "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-const MONO = "'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace";
 const PAPER = "#fffdf7";
 const ACCENT = "#d8ff3e";
 const INK = "#111111";
@@ -27,10 +26,6 @@ const LINE = "#ece8dd";
 const LINK = "#6a7d18";
 
 export type RenderedEmail = { subject: string; text: string; html: string };
-
-function fmtAmount(minor: number, currency: string): string {
-  return `${(minor / 100).toLocaleString("ru-RU")} ${currency}`;
-}
 
 function escapeHtml(value: string): string {
   return value.replace(
@@ -97,18 +92,6 @@ function kvCard(rows: Array<[string, string]>): string {
   );
 }
 
-function codeCard(label: string | null, code: string): string {
-  const labelHtml = label
-    ? `<div style="font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7a8a2a;margin-bottom:6px;">${escapeHtml(label)}</div>`
-    : "";
-  return (
-    `<div style="margin:8px 0;background:#f4ffcf;border:1px solid ${ACCENT};border-radius:16px;padding:16px 18px;">` +
-    labelHtml +
-    `<div style="font-family:${MONO};font-size:18px;font-weight:700;letter-spacing:0.06em;color:${INK};word-break:break-all;">${escapeHtml(code)}</div>` +
-    `</div>`
-  );
-}
-
 /** Full email document: paper background, brand mark, rounded card, footer. */
 function shell(opts: {
   preheader: string;
@@ -141,74 +124,56 @@ function shell(opts: {
 
 // ---- Renderers ------------------------------------------------------------
 
-export function renderGiftCardDelivery(
-  input: GiftCardDeliveryEmail,
-): RenderedEmail {
-  const multiple = input.cards.length > 1;
+export function renderGiftCardReady(input: GiftCardReadyEmail): RenderedEmail {
+  const productLabel =
+    input.items.length > 0
+      ? input.items.join(", ")
+      : "цифровой товар";
 
-  const codeLines = input.cards
-    .map((c) =>
-      multiple ? `${fmtAmount(c.denominationMinor, c.currency)} — ${c.code}` : c.code,
-    )
-    .join("\n");
   const text =
     `Здравствуйте!\n\n` +
     `Спасибо за покупку в Lumo.\n` +
-    `Ваш заказ успешно обработан, и цифровой товар уже готов к использованию.\n\n` +
-    `Код активации\n` +
-    `${multiple ? "Коды подарочных карт:" : "Код подарочной карты:"}\n${codeLines}\n\n` +
-    `Инструкции по активации\n${INSTRUCTIONS_URL}\n` +
-    `Воспользуйтесь пошаговыми инструкциями, чтобы активировать приобретённую карту.\n\n` +
-    `Личный кабинет\n${PROFILE_URL}\n` +
-    `Здесь всегда доступны ваши покупки, история заказов и информация по ним.\n\n` +
+    `Ваш заказ успешно оплачен, и цифровой товар подготовлен: ${productLabel}.\n\n` +
+    `Где получить код\n` +
+    `В целях безопасности код активации не отправляется по электронной почте.\n` +
+    `Он доступен только в вашем личном кабинете:\n${PROFILE_URL}\n` +
+    `Нажмите «Получить код», подтвердите условия — и код отобразится.\n\n` +
+    `Инструкции по активации\n${INSTRUCTIONS_URL}\n\n` +
     `Поддержка\n${SUPPORT_URL}\n` +
     `Если возникнут вопросы, мы всегда готовы помочь.\n\n` +
-    `Важно\n` +
-    `• Сохраните код до момента активации.\n` +
-    `• Не передавайте его третьим лицам.\n` +
-    `• После успешной активации повторное использование кода невозможно.\n\n` +
-    `Спасибо, что выбрали Lumo.\n` +
-    `Желаем приятных покупок, выгодных пополнений и отличной игры!\n\n` +
+    `Спасибо, что выбрали Lumo.\n\n` +
     `С уважением,\nКоманда Lumo`;
 
-  const codeCards = input.cards
-    .map((c) =>
-      codeCard(multiple ? fmtAmount(c.denominationMinor, c.currency) : null, c.code),
-    )
-    .join("");
   const contentHtml =
     para(
-      "Спасибо за покупку в Lumo. Ваш заказ успешно обработан, и цифровой товар уже готов к использованию.",
+      `Спасибо за покупку в Lumo. Ваш заказ успешно оплачен, и цифровой товар подготовлен: <b style="color:${INK};">${escapeHtml(productLabel)}</b>.`,
     ) +
-    heading("Код активации") +
-    codeCards +
+    heading("Где получить код") +
+    para(
+      "В целях безопасности код активации не отправляется по электронной почте. Он доступен только в вашем личном кабинете — нажмите «Получить код», подтвердите условия, и код отобразится.",
+    ) +
     button(PROFILE_URL, "Открыть личный кабинет") +
     heading("Инструкции по активации") +
     para(
-      `Воспользуйтесь пошаговыми ${link(INSTRUCTIONS_URL, "инструкциями")}, чтобы активировать приобретённую карту.`,
+      `Воспользуйтесь пошаговыми ${link(INSTRUCTIONS_URL, "инструкциями")}, чтобы активировать приобретённый товар.`,
     ) +
-    heading("Поддержка") +
-    para(`Если возникнут вопросы, мы всегда готовы ${link(SUPPORT_URL, "помочь")}.`) +
     divider() +
     noteCard(
-      "Важно",
-      "• Сохраните код до момента активации.<br>" +
-        "• Не передавайте его третьим лицам.<br>" +
-        "• После успешной активации повторное использование кода невозможно.",
+      "Полезные ссылки",
+      `${link(INSTRUCTIONS_URL, "Инструкции")} · ${link(SUPPORT_URL, "Поддержка")}<br>` +
+        "Если возникнут вопросы, мы всегда готовы помочь.",
     ) +
     divider() +
-    para(
-      "Спасибо, что выбрали Lumo. Желаем приятных покупок, выгодных пополнений и отличной игры!",
-    ) +
+    para("Спасибо, что выбрали Lumo.") +
     para("С уважением,<br>Команда Lumo");
 
   return {
-    subject: "Ваш заказ в Lumo оформлен",
+    subject: "Заказ оплачен — код доступен в личном кабинете",
     text,
     html: shell({
-      preheader: "Ваш код готов — заказ оформлен.",
+      preheader: "Заказ оплачен — код доступен в личном кабинете.",
       orderLabel: input.publicOrderId,
-      title: "Ваш заказ готов",
+      title: "Код готов в личном кабинете",
       contentHtml,
     }),
   };

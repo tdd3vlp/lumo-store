@@ -1,5 +1,4 @@
 import { sql } from "@/lib/db";
-import { decryptGiftCardCode } from "@/lib/gift-cards/crypto";
 import type { EmailProvider } from "@/lib/email/types";
 
 // Send-only outbox worker: fulfilment (lib/payments/fulfillment.ts) already
@@ -75,49 +74,32 @@ export async function processOneEmailOutbox(provider: EmailProvider) {
       return true;
     }
 
-    const payload = message.payload as {
-      publicOrderId: string;
-      deliveryIds: string[];
-    };
-    const deliveries =
-      payload.deliveryIds.length > 0
-        ? await sql`
-            SELECT
-              cards.code_ciphertext,
-              cards.code_iv,
-              cards.code_auth_tag,
-              denominations.amount_minor,
-              denominations.currency
-            FROM fulfillment_deliveries deliveries
-            JOIN gift_card_inventory cards ON cards.id = deliveries.gift_card_id
-            JOIN gift_card_denominations denominations
-              ON denominations.id = cards.denomination_id
-            WHERE deliveries.id IN ${sql(payload.deliveryIds)}
-            ORDER BY deliveries.created_at
-          `
-        : [];
+    // Gift-card "code ready" notification: NO code — the code is revealed only in
+    // the account (ЛК) behind auth. There is deliberately NO code-carrying email
+    // path anywhere in this worker (decryption lives solely in the Code Delivery
+    // Service). Any legacy `gift-card-delivery` rows were converted to this
+    // template by migration 032; an unrecognised template is treated as an error
+    // (retried/failed by the catch below) rather than silently succeeding.
+    if (message.template === "gift-card-ready") {
+      const payload = message.payload as {
+        publicOrderId: string;
+        items?: string[];
+      };
+      await provider.sendGiftCardReady({
+        eventKey: message.event_key,
+        recipient: message.recipient_email,
+        publicOrderId: payload.publicOrderId,
+        items: Array.isArray(payload.items) ? payload.items : [],
+      });
+      await sql`
+        UPDATE email_outbox
+        SET status = 'sent', sent_at = now(), locked_at = null, updated_at = now()
+        WHERE id = ${message.id}
+      `;
+      return true;
+    }
 
-    await provider.sendGiftCardDelivery({
-      eventKey: message.event_key,
-      recipient: message.recipient_email,
-      publicOrderId: payload.publicOrderId,
-      cards: deliveries.map((delivery) => ({
-        denominationMinor: Number(delivery.amount_minor),
-        currency: delivery.currency,
-        code: decryptGiftCardCode({
-          ciphertext: delivery.code_ciphertext,
-          iv: delivery.code_iv,
-          authTag: delivery.code_auth_tag,
-        }),
-      })),
-    });
-
-    await sql`
-      UPDATE email_outbox
-      SET status = 'sent', sent_at = now(), locked_at = null, updated_at = now()
-      WHERE id = ${message.id}
-    `;
-    return true;
+    throw new Error(`Unknown email template: ${message.template}`);
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Email send failed";
     await sql`

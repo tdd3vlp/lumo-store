@@ -1,12 +1,14 @@
-export type GiftCardDeliveryEmail = {
+/**
+ * Notify that a purchased gift-card code is ready. Carries NO code, image, PDF
+ * or code text — the code is revealed only in the customer's account (ЛК),
+ * behind auth, after they accept the reveal warning.
+ */
+export type GiftCardReadyEmail = {
   eventKey: string;
   recipient: string;
   publicOrderId: string;
-  cards: Array<{
-    denominationMinor: number;
-    currency: string;
-    code: string;
-  }>;
+  /** Human-readable product labels in this order (e.g. "App Store 1000 RUB"). */
+  items: string[];
 };
 
 export type PsAccountReadyEmail = {
@@ -29,7 +31,11 @@ export type TopUpConfirmationEmail = {
 };
 
 export interface EmailProvider {
-  sendGiftCardDelivery(input: GiftCardDeliveryEmail): Promise<{
+  /**
+   * Notify that the gift-card code is ready in the account (ЛК). Carries NO
+   * code — this is the ONLY gift-card email; the code is never emailed.
+   */
+  sendGiftCardReady(input: GiftCardReadyEmail): Promise<{
     providerMessageId: string;
   }>;
   /**

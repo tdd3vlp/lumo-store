@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { recordOrderPaid } from "@/lib/audit/order-paid";
 import { sql } from "@/lib/db";
 import { giftCardMailer } from "@/lib/email/smtp-provider";
 import { processOneEmailOutbox } from "@/lib/email/process-outbox";
@@ -80,6 +81,34 @@ export async function POST(request: Request) {
     fulfilled += 1;
   }
 
+  // 1b) Backfill ORDER_PAID for recently-paid orders whose best-effort audit
+  //     write was lost to a crash between the payment commit and the callback's
+  //     post-response hook. Bounded to the same recent window; the deterministic
+  //     event_key makes repeats a no-op (ON CONFLICT DO NOTHING).
+  const missingPaid = await sql`
+    SELECT o.id, o.customer_id, o.paid_at
+    FROM orders o
+    WHERE o.paid_at IS NOT NULL
+      AND o.paid_at > now() - interval '2 hours'
+      AND o.status IN ('paid', 'fulfilling', 'fulfilled')
+      AND NOT EXISTS (
+        SELECT 1 FROM digital_access_log l
+        WHERE l.order_id = o.id AND l.event_type = 'ORDER_PAID'
+      )
+    ORDER BY o.paid_at
+    LIMIT 25
+  `;
+  let backfilled = 0;
+  for (const o of missingPaid) {
+    await recordOrderPaid({
+      orderId: String(o.id),
+      customerId: o.customer_id === null ? null : String(o.customer_id),
+      paidAt: new Date(o.paid_at as string),
+      backfill: true,
+    });
+    backfilled += 1;
+  }
+
   // 2) Drain the delivery-email queue (bounded).
   const mailer = giftCardMailer();
   let sent = 0;
@@ -156,6 +185,7 @@ export async function POST(request: Request) {
 
   return Response.json({
     reconciled: fulfilled,
+    orderPaidBackfilled: backfilled,
     emailsSent: sent,
     alerted,
     expired: Number(expired),

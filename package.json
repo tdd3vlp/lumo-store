@@ -10,7 +10,8 @@
     "lint": "eslint",
     "db:up": "docker-compose up -d postgres",
     "db:migrate": "tsx scripts/db/migrate.ts",
-    "gift-cards:import": "tsx scripts/gift-cards/import-inventory.ts"
+    "gift-cards:import": "tsx scripts/gift-cards/import-inventory.ts",
+    "audit:verify-chain": "tsx scripts/audit/verify-chain.ts"
   },
   "dependencies": {
     "country-flag-icons": "^1.6.20",

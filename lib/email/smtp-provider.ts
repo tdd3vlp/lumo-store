@@ -1,7 +1,7 @@
 import "server-only";
 import nodemailer from "nodemailer";
 import {
-  renderGiftCardDelivery,
+  renderGiftCardReady,
   renderPsAccountReady,
   renderTopUpConfirmation,
 } from "./render";
@@ -44,8 +44,8 @@ async function send(to: string, email: { subject: string; text: string; html: st
 
 export function giftCardMailer(): EmailProvider {
   return {
-    async sendGiftCardDelivery(input) {
-      return send(input.recipient, renderGiftCardDelivery(input));
+    async sendGiftCardReady(input) {
+      return send(input.recipient, renderGiftCardReady(input));
     },
     async sendPsAccountReady(input) {
       return send(input.recipient, renderPsAccountReady(input));

@@ -323,23 +323,24 @@ async function reserveAndDeliverGiftCards(orderId: string): Promise<void> {
     if (!order) throw new FulfillmentError("Order vanished during fulfilment");
 
     const items = await tx`
-      SELECT id, denomination_id, quantity
+      SELECT id, denomination_id, quantity, title
       FROM order_items
       WHERE order_id = ${orderId} AND item_type = 'gift_card'
         AND fulfillment_status <> 'fulfilled'
       ORDER BY created_at
     `;
 
-    const deliveryIds: string[] = [];
+    const itemLabels: string[] = [];
     for (const item of items) {
+      const quantity = Number(item.quantity);
       const cards = await tx`
         SELECT id FROM gift_card_inventory
         WHERE denomination_id = ${item.denomination_id} AND status = 'available'
         ORDER BY created_at
         FOR UPDATE SKIP LOCKED
-        LIMIT ${Number(item.quantity)}
+        LIMIT ${quantity}
       `;
-      if (cards.length !== Number(item.quantity)) {
+      if (cards.length !== quantity) {
         throw new FulfillmentError("Not enough inventory after NS.gifts top-up");
       }
       for (const card of cards) {
@@ -349,29 +350,31 @@ async function reserveAndDeliverGiftCards(orderId: string): Promise<void> {
               reserved_at = now(), delivered_at = now()
           WHERE id = ${card.id}
         `;
-        const [delivery] = await tx`
+        await tx`
           INSERT INTO fulfillment_deliveries (order_item_id, gift_card_id, recipient_email, delivered_at)
           VALUES (${item.id}, ${card.id}, ${order.email}, now())
           ON CONFLICT (order_item_id, gift_card_id) DO NOTHING
-          RETURNING id
         `;
-        if (delivery) deliveryIds.push(String(delivery.id));
       }
       await tx`
         UPDATE order_items
         SET fulfillment_status = 'fulfilled', fulfilled_at = now()
         WHERE id = ${item.id}
       `;
+      const label = typeof item.title === "string" && item.title ? item.title : "Цифровой товар";
+      itemLabels.push(quantity > 1 ? `${label} × ${quantity}` : label);
     }
 
-    // Notification email (best-effort; the account is the delivery of record).
+    // Code-free "ready" notification (best-effort). The code is NOT emailed — it
+    // is revealed only in the account (ЛК), behind auth, after the customer
+    // accepts the reveal warning. The account is the delivery of record.
     await tx`
       INSERT INTO email_outbox (event_key, template, recipient_email, payload)
       VALUES (
-        ${`gift-card-delivery:${order.id}`},
-        'gift-card-delivery',
+        ${`gift-card-ready:${order.id}`},
+        'gift-card-ready',
         ${order.email},
-        ${sql.json({ orderId: order.id, publicOrderId: order.public_id, deliveryIds })}
+        ${sql.json({ publicOrderId: order.public_id, items: itemLabels })}
       )
       ON CONFLICT (event_key) DO NOTHING
     `;
