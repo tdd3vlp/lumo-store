@@ -33,7 +33,7 @@ export function brandAccent(productType: string): BrandAccent {
 // *offered*, it does not invent inventory.
 const REGION_ALLOWLIST: Record<string, string[]> = {
   apple: ["RU", "US", "TR"],
-  playstation: ["TR", "IN", "US", "PL", "UK"],
+  playstation: ["TR", "IN", "US", "PL"],
   xbox: ["US", "TR", "EU"],
 };
 

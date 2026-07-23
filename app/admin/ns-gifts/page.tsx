@@ -43,7 +43,7 @@ export default async function AdminNsGiftsPage() {
           Администрирование
         </p>
         <h1 className="font-[family-name:var(--font-unbounded)] text-3xl font-bold tracking-[-0.04em] text-[var(--ink)] md:text-4xl">
-          Каталог NS.gifts
+          Каталог
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">
           Подтягивайте позиции из NS.gifts, добавляйте их в каталог магазина с

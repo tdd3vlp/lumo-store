@@ -9,6 +9,7 @@ export const PRODUCT_TYPE_LABELS: Record<string, string> = {
   nintendo: "Nintendo",
   roblox: "Roblox",
   discord: "Discord",
+  telegram: "Telegram Stars",
 };
 
 export function productTypeLabel(productType: string): string {

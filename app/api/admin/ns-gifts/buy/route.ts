@@ -88,10 +88,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Money already spent — record the codes before touching the DB so a failed
-    // insert is recoverable from logs rather than lost.
+    // Money already spent. Never log the codes themselves (bearer secrets):
+    // if the DB insert below fails, they're recoverable from NS.gifts via
+    // getOrderInfo(custom_id), which re-returns the same pins.
     console.log(
-      `[ns-gifts/buy] paid custom_id=${customId} pins=${JSON.stringify(paid.pins)} balance=${paid.balance}`,
+      `[ns-gifts/buy] paid custom_id=${customId} codes=${paid.pins.length} balance=${paid.balance}`,
     );
 
     try {

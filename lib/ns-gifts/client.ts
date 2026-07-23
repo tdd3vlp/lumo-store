@@ -51,6 +51,10 @@ export class NsGiftsApiError extends Error {
 type TokenResponse = { user_id: number; token: string; expires_in: number };
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
+// Single-flight: concurrent callers (e.g. steam check_user + exchange_rate on a
+// cold instance) share one get_token instead of racing two, which NS.gifts can
+// rate-limit and flake on.
+let tokenInFlight: Promise<string> | null = null;
 
 async function getToken(): Promise<string> {
   const path = "/api/v2/get_token";
@@ -76,7 +80,12 @@ async function getToken(): Promise<string> {
 
 async function ensureToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.token;
-  return getToken();
+  if (!tokenInFlight) {
+    tokenInFlight = getToken().finally(() => {
+      tokenInFlight = null;
+    });
+  }
+  return tokenInFlight;
 }
 
 async function call<T>(

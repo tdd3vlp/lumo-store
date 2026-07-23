@@ -120,10 +120,10 @@ export async function quoteSteamTopUp(input: {
     }
 
     // Price off NS.gifts' own official USD→RUB rate (not a hand-maintained
-    // rate), so we only add our markup on top — a ruble top-up is exactly
+    // rate), so we only add our top-up markup on top — a ruble top-up is exactly
     // amount × (1 + markup), with no hidden FX spread.
     const amountUsd = amountToUsd(input.amount, input.currency, fx);
-    const priceMinor = priceMinorFromUsd(amountUsd, fx.rub, pricing.markupBps);
+    const priceMinor = priceMinorFromUsd(amountUsd, fx.rub, pricing.topupMarkupBps);
     return { canRefill: true, amountUsd, priceMinor, min, max, error: null };
   } catch {
     return { ...empty, error: GENERIC_ERROR };
@@ -169,7 +169,7 @@ export async function priceSteamTopUp(input: {
       return { ...empty, min, max, error: `Сумма должна быть от ${min} до ${max}.` };
     }
     const amountUsd = amountToUsd(input.amount, input.currency, fx);
-    const priceMinor = priceMinorFromUsd(amountUsd, fx.rub, pricing.markupBps);
+    const priceMinor = priceMinorFromUsd(amountUsd, fx.rub, pricing.topupMarkupBps);
     return { ok: true, amountUsd, priceMinor, min, max, error: null };
   } catch {
     return { ...empty, error: GENERIC_ERROR };

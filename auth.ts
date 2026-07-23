@@ -123,6 +123,23 @@ function isProviderEmailVerified(
   return provider === "yandex" || provider === "vk";
 }
 
+// The raw OAuth profile names the email differently per provider: Google uses
+// `email`, Yandex uses `default_email` (+ an `emails` array), VK sometimes only
+// exposes it on the normalized `user`. Check all of them so sign-in works for
+// every provider, not just Google.
+function extractEmail(
+  profile: unknown,
+  user: { email?: string | null } | undefined,
+): string | null {
+  const p = (profile ?? {}) as Record<string, unknown>;
+  const emails = Array.isArray(p.emails) ? (p.emails as unknown[]) : [];
+  const candidates: unknown[] = [p.email, user?.email, p.default_email, emails[0]];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.includes("@")) return c;
+  }
+  return null;
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   providers: [Google, Yandex, VkId()],
@@ -134,15 +151,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/profile",
   },
   callbacks: {
-    async signIn({ account, profile }) {
-      if (!account || !profile?.email) return false;
+    async signIn({ account, profile, user }) {
+      if (!account) return false;
+      if (!extractEmail(profile, user)) return false;
 
-      return isProviderEmailVerified(account.provider, profile.email_verified);
+      return isProviderEmailVerified(account.provider, profile?.email_verified);
     },
     async jwt({ token, account, profile, user }) {
       if (!account || !profile) return token;
 
-      const email = profile.email ?? user.email ?? token.email;
+      const email = extractEmail(profile, user) ?? token.email;
       if (!email) return token;
       const emailVerified = isProviderEmailVerified(
         account.provider,

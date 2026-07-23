@@ -1,0 +1,14 @@
+[Unit]
+Description=Lumo — refresh the stalest pre-order games from PSN (throttled)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=lumo
+WorkingDirectory=/home/lumo/app
+EnvironmentFile=/home/lumo/app/.env
+# Re-fetches the few least-recently-refreshed games (prices, data, AI summary)
+# with pauses between requests, so PSN never sees a burst. Idempotent.
+ExecStart=/home/lumo/app/node_modules/.bin/tsx scripts/psn/refresh-games.ts 3
+TimeoutStartSec=600

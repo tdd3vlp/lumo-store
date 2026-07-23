@@ -40,6 +40,16 @@ export function formatTopUpAmount(amount: number, currency: TopUpCurrency): stri
 export const MIN_USD = 0.13;
 export const MAX_USD = 500;
 
+// Our own business limits on a single payment, set in rubles and converted to
+// the selected currency at the official rate: 50 ₽ – 15 000 ₽ per top-up.
+export const MIN_TOPUP_RUB = 50;
+export const MAX_TOPUP_RUB = 15_000;
+
+// Per-Steam-account daily limits (rolling 24h), enforced at order creation:
+// at most this many successful top-ups and this many USD in total.
+export const MAX_TOPUPS_PER_ACCOUNT_PER_DAY = 3;
+export const MAX_USD_PER_ACCOUNT_PER_DAY = 500;
+
 /** USD→currency rates from NS.gifts exchange_rate (units of currency per 1 USD). */
 export type FxRates = { rub: number; uah: number; kzt: number };
 
@@ -71,15 +81,24 @@ export function amountToUsd(amount: number, currency: TopUpCurrency, fx: FxRates
   return Math.round(usd * 100) / 100;
 }
 
-/** Amount range the buyer may enter in the selected currency. */
+/**
+ * Amount range the buyer may enter in the selected currency: the NS.gifts USD
+ * bounds intersected with our 50–15 000 ₽ per-payment business limit (both
+ * converted at the same official rate, so RUB gets exactly 50–15 000).
+ */
 export function topUpBounds(
   currency: TopUpCurrency,
   fx: FxRates,
 ): { min: number; max: number } {
   const per = currencyPerUsd(currency, fx);
+  // Ratio first: for RUB per/fx.rub is exactly 1, so the bounds stay exactly
+  // 50–15 000 with no floating-point drift.
+  const perRub = per / fx.rub;
+  const bizMin = Math.ceil(MIN_TOPUP_RUB * perRub);
+  const bizMax = Math.floor(MAX_TOPUP_RUB * perRub);
   return {
-    min: Math.max(1, Math.ceil(MIN_USD * per)),
-    max: Math.floor(MAX_USD * per),
+    min: Math.max(1, Math.ceil(MIN_USD * per), bizMin),
+    max: Math.min(Math.floor(MAX_USD * per), bizMax),
   };
 }
 

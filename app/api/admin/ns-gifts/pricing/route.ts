@@ -33,10 +33,11 @@ export async function POST(request: Request) {
   const b = body as Record<string, unknown>;
   const rate = Number(b.rate);
   const markupBps = Number(b.markupBps);
+  const topupMarkupBps = Number(b.topupMarkupBps);
 
   try {
-    await setNsPricing(rate, markupBps);
-    return Response.json({ rate, markupBps });
+    await setNsPricing(rate, markupBps, topupMarkupBps);
+    return Response.json({ rate, markupBps, topupMarkupBps });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to save pricing";
     return Response.json({ error: message }, { status: 400 });

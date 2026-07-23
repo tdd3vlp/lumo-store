@@ -2,19 +2,14 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FaSteam } from "react-icons/fa6";
+import { useSteamTopUpQuote } from "@/components/useSteamTopUpQuote";
 import { formatRubles } from "@/lib/pricing/rates";
 import {
   type TopUpCurrency,
   TOPUP_CURRENCIES,
-  isValidSteamLogin,
 } from "@/lib/products/steam-topup";
-
-type QuoteResult =
-  | { kind: "ok"; priceMinor: number }
-  | { kind: "not_found" }
-  | { kind: "error"; message: string };
 
 function ArrowRightIcon() {
   return (
@@ -48,56 +43,9 @@ export default function SteamTopUp() {
   const [login, setLogin] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<TopUpCurrency>("RUB");
-  const [result, setResult] = useState<{ key: string; data: QuoteResult } | null>(null);
 
-  const amountNum = Number(amount);
-  const loginValid = isValidSteamLogin(login);
-  const inputsReady = loginValid && Number.isInteger(amountNum) && amountNum > 0;
-  const currentKey = `${login.trim()}|${amountNum}|${currency}`;
-
-  // Live validate against NS.gifts (debounced). setState happens only in the
-  // async callback; the result is tagged with its request key so the render
-  // can tell a fresh answer from a stale one and derive checking/idle without
-  // storing them.
-  useEffect(() => {
-    if (!inputsReady) return;
-    const key = currentKey;
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch("/api/steam/check-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ login: login.trim(), amount: amountNum, currency }),
-          signal: controller.signal,
-        });
-        const data = await res.json();
-        if (data.canRefill && typeof data.priceMinor === "number") {
-          setResult({ key, data: { kind: "ok", priceMinor: data.priceMinor } });
-        } else if (data.error === "Аккаунт не найден.") {
-          setResult({ key, data: { kind: "not_found" } });
-        } else {
-          setResult({ key, data: { kind: "error", message: data.error ?? "Не удалось проверить логин." } });
-        }
-      } catch {
-        if (controller.signal.aborted) return;
-        setResult({ key, data: { kind: "error", message: "Не удалось проверить логин. Попробуйте позже." } });
-      }
-    }, 500);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [currentKey, inputsReady, login, amountNum, currency]);
-
-  const shown = inputsReady && result?.key === currentKey ? result.data : null;
-  const status: "idle" | "checking" | QuoteResult["kind"] = !inputsReady
-    ? "idle"
-    : shown
-      ? shown.kind
-      : "checking";
-  const canPay = shown?.kind === "ok";
-  const priceMinor = shown?.kind === "ok" ? shown.priceMinor : null;
+  const { status, errorMessage, canPay, priceMinor, amountNum } =
+    useSteamTopUpQuote(login, amount, currency);
 
   function submit() {
     if (!canPay) return;
@@ -158,26 +106,49 @@ export default function SteamTopUp() {
               <label htmlFor="steam-currency" className={LABEL_CLASS}>
                 Валюта
               </label>
-              <select
-                id="steam-currency"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as TopUpCurrency)}
-                className={`${FIELD_CLASS} cursor-pointer [&>option]:text-[var(--ink)]`}
-              >
-                {TOPUP_CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative mt-1.5">
+                <select
+                  id="steam-currency"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as TopUpCurrency)}
+                  className="w-full cursor-pointer appearance-none rounded-[14px] border border-white/15 bg-white/[0.06] py-3 pl-4 pr-9 text-white outline-none transition focus:border-[var(--signal)] [&>option]:text-[var(--ink)]"
+                >
+                  {TOPUP_CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50"
+                  aria-hidden="true"
+                >
+                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
             </div>
           </div>
 
           {/* Live validation status */}
           <div className="mt-3 min-h-5 text-sm" aria-live="polite">
+            {status === "invalid" && (
+              <span className="text-white/50">
+                Введите логин Steam — латиница, цифры и «_». Это логин для входа,
+                а не отображаемое имя.
+              </span>
+            )}
             {status === "checking" && (
               <span className="inline-flex items-center gap-2 text-white/60">
                 <SpinnerIcon /> Проверяем аккаунт…
+              </span>
+            )}
+            {status === "found" && (
+              <span className="inline-flex items-center gap-2 font-semibold text-[var(--signal)]">
+                <CheckIcon /> Аккаунт найден — укажите сумму
               </span>
             )}
             {status === "ok" && (
@@ -186,10 +157,12 @@ export default function SteamTopUp() {
               </span>
             )}
             {status === "not_found" && (
-              <span className="font-semibold text-[var(--coral)]">Аккаунт не найден</span>
+              <span className="font-semibold text-[var(--coral)]">
+                Аккаунт не найден. Проверьте логин для входа (не отображаемое имя).
+              </span>
             )}
-            {status === "error" && shown?.kind === "error" && (
-              <span className="text-[var(--coral)]">{shown.message}</span>
+            {status === "error" && errorMessage && (
+              <span className="text-[var(--coral)]">{errorMessage}</span>
             )}
           </div>
 

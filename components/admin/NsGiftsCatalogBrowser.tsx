@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { CuratedDenomination } from "@/lib/gift-cards/denominations";
+import { productTypeLabel } from "@/lib/products/labels";
 
 type NsGiftsCatalogItem = {
   serviceId: number;
@@ -73,9 +74,30 @@ export default function NsGiftsCatalogBrowser({
 
   const [buyTarget, setBuyTarget] = useState<CuratedDenomination | null>(null);
 
-  // Global USD->RUB rate + markup — re-prices the whole NS.gifts catalog.
+  // "Товары магазина" — filters + collapse (the table gets long).
+  const [tableOpen, setTableOpen] = useState(true);
+  const [stockFilter, setStockFilter] = useState<"all" | "in" | "out">("all");
+  const [serviceFilter, setServiceFilter] = useState("all");
+  const services = useMemo(
+    () => [...new Set(denominations.map((d) => d.productType))].sort(),
+    [denominations],
+  );
+  const visibleDenoms = useMemo(
+    () =>
+      denominations.filter((d) => {
+        if (serviceFilter !== "all" && d.productType !== serviceFilter) return false;
+        if (stockFilter === "in" && d.availableCount <= 0) return false;
+        if (stockFilter === "out" && d.availableCount > 0) return false;
+        return true;
+      }),
+    [denominations, serviceFilter, stockFilter],
+  );
+
+  // Global USD->RUB rate + markups — re-prices the whole NS.gifts catalog and
+  // the Steam/Telegram top-ups (which carry a separate commission).
   const [rate, setRate] = useState("");
   const [markupPct, setMarkupPct] = useState("");
+  const [topupMarkupPct, setTopupMarkupPct] = useState("");
   const [pricingSaving, setPricingSaving] = useState(false);
   const [pricingNotice, setPricingNotice] = useState<string | null>(null);
 
@@ -83,10 +105,11 @@ export default function NsGiftsCatalogBrowser({
     let active = true;
     fetch("/api/admin/ns-gifts/pricing", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { rate?: number; markupBps?: number } | null) => {
+      .then((d: { rate?: number; markupBps?: number; topupMarkupBps?: number } | null) => {
         if (active && d) {
           setRate(String(d.rate ?? ""));
           setMarkupPct(String((d.markupBps ?? 0) / 100));
+          setTopupMarkupPct(String((d.topupMarkupBps ?? 0) / 100));
         }
       })
       .catch(() => undefined);
@@ -106,6 +129,7 @@ export default function NsGiftsCatalogBrowser({
         body: JSON.stringify({
           rate: Number(rate.replace(",", ".")),
           markupBps: Math.round(Number(markupPct.replace(",", ".")) * 100),
+          topupMarkupBps: Math.round(Number(topupMarkupPct.replace(",", ".")) * 100),
         }),
       });
       const d = await res.json();
@@ -242,13 +266,24 @@ export default function NsGiftsCatalogBrowser({
             />
           </label>
           <label className="text-sm font-semibold text-[var(--text-muted)]">
-            Наценка, %
+            Наценка на карты, %
             <input
               type="number"
               step="any"
               min="0"
               value={markupPct}
               onChange={(e) => setMarkupPct(e.target.value)}
+              className="mt-1 block w-28 rounded-[11px] border border-[var(--line-strong)] bg-white px-3 py-2 text-[var(--ink)]"
+            />
+          </label>
+          <label className="text-sm font-semibold text-[var(--text-muted)]">
+            Наценка на топ-апы, %
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={topupMarkupPct}
+              onChange={(e) => setTopupMarkupPct(e.target.value)}
               className="mt-1 block w-28 rounded-[11px] border border-[var(--line-strong)] bg-white px-3 py-2 text-[var(--ink)]"
             />
           </label>
@@ -263,8 +298,9 @@ export default function NsGiftsCatalogBrowser({
             <span className="text-sm font-semibold text-[#527000]">{pricingNotice}</span>
           )}
           <p className="w-full text-xs text-[var(--text-muted)]">
-            Розница всех товаров из NS.gifts = закупка USD × курс × (1 + наценка).
-            Меняешь курс — цены на витрине обновляются автоматически.
+            Розница = закупка USD × курс × (1 + наценка). Наценка на карты применяется
+            к каталогу NS.gifts (PlayStation, Xbox, App Store…), наценка на топ-апы —
+            к пополнению Steam и Telegram Stars. Меняешь — цены обновляются автоматически.
           </p>
         </form>
       </section>
@@ -272,7 +308,27 @@ export default function NsGiftsCatalogBrowser({
       {/* Curated products */}
       <section>
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-xl font-bold text-[var(--ink)]">Товары магазина</h2>
+          <button
+            type="button"
+            onClick={() => setTableOpen((v) => !v)}
+            aria-expanded={tableOpen}
+            className="flex items-center gap-2 text-xl font-bold text-[var(--ink)]"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              className={`h-4 w-4 text-[var(--text-muted)] transition ${tableOpen ? "rotate-90" : ""}`}
+              aria-hidden="true"
+            >
+              <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Товары магазина
+            <span className="text-sm font-semibold text-[var(--text-muted)]">
+              ({denominations.length})
+            </span>
+          </button>
           <button
             type="button"
             onClick={refreshDenominations}
@@ -282,10 +338,43 @@ export default function NsGiftsCatalogBrowser({
           </button>
         </div>
 
+        {tableOpen && denominations.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2.5">
+            <select
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
+              className="rounded-[11px] border border-[var(--line-strong)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+            >
+              <option value="all">Все сервисы</option>
+              {services.map((s) => (
+                <option key={s} value={s}>
+                  {productTypeLabel(s)}
+                </option>
+              ))}
+            </select>
+            <select
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value as "all" | "in" | "out")}
+              className="rounded-[11px] border border-[var(--line-strong)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+            >
+              <option value="all">Любой склад</option>
+              <option value="in">В наличии</option>
+              <option value="out">Нет на складе</option>
+            </select>
+            <span className="text-sm text-[var(--text-muted)]">
+              Показано: {visibleDenoms.length}
+            </span>
+          </div>
+        )}
+
         {denominations.length === 0 ? (
           <p className="rounded-[16px] border border-[var(--line)] bg-[var(--card-surface)] p-5 text-sm text-[var(--text-muted)]">
             Пока нет ни одного товара. Загрузите каталог NS.gifts ниже и добавьте
             первую позицию.
+          </p>
+        ) : !tableOpen ? null : visibleDenoms.length === 0 ? (
+          <p className="rounded-[16px] border border-[var(--line)] bg-[var(--card-surface)] p-5 text-sm text-[var(--text-muted)]">
+            Под выбранные фильтры ничего не подходит.
           </p>
         ) : (
           <div className="overflow-x-auto rounded-[16px] border border-[var(--line)]">
@@ -301,7 +390,7 @@ export default function NsGiftsCatalogBrowser({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
-                {denominations.map((d) => (
+                {visibleDenoms.map((d) => (
                   <tr key={d.denominationId}>
                     <td className="px-4 py-3">
                       <p className="font-bold text-[var(--ink)]">

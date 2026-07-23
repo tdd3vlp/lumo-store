@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@keyframes gameFade {
+  from {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 :root {
   --paper: #f4f0e7;
   --paper-strong: #fffdf7;
@@ -8,6 +19,7 @@
   --ink-soft: #242129;
   --signal: #d8ff3e;
   --signal-strong: #c8f500;
+  --signal-soft: #eef9c2;
   --coral: #ff6b57;
   --sky: #78a8ff;
   --text: #18161d;

@@ -98,7 +98,11 @@ export default function HeroCarousel({ products }: { products: Product[] }) {
   return (
     <div
       id="carousel"
-      className="w-full scroll-mt-24"
+      // Clip the fan to the viewport on small screens: the perspective stage
+      // below can't reliably clip its own 3D-transformed cards (they escape
+      // overflow-hidden), so the edge cards would push the page wider. From xl
+      // the fan has room to show in full.
+      className="w-full scroll-mt-24 overflow-x-clip xl:overflow-x-visible"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -106,7 +110,7 @@ export default function HeroCarousel({ products }: { products: Product[] }) {
     >
       <div className="relative">
         <div
-          className="relative mx-auto h-[300px] w-full sm:h-[360px] md:h-[420px]"
+          className="relative mx-auto h-[260px] w-full overflow-hidden sm:h-[310px] md:h-[360px] xl:overflow-visible"
           style={{ perspective: 1600 }}
         >
           {cards.map((item, i) => {
@@ -165,7 +169,7 @@ export default function HeroCarousel({ products }: { products: Product[] }) {
         </button>
       </div>
 
-      <div className="mt-5 flex items-center justify-center gap-1.5">
+      <div className="mt-2 flex items-center justify-center gap-1.5">
         {cards.map((item, i) => (
           <button
             key={item.type}

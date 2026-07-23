@@ -43,4 +43,19 @@ ssh -i $KEY -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAlive
   sudo systemctl is-active lumo-store
 "
 
+echo "→ Установка таймеров (каталог NS.gifts + обновление игр)..."
+ssh -i $KEY -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=20 $SERVER "
+  sudo cp $APP/deploy/lumo-catalog-sync.service  /etc/systemd/system/
+  sudo cp $APP/deploy/lumo-catalog-sync.timer    /etc/systemd/system/
+  sudo cp $APP/deploy/lumo-games-refresh.service /etc/systemd/system/
+  sudo cp $APP/deploy/lumo-games-refresh.timer   /etc/systemd/system/
+  sudo cp $APP/deploy/lumo-fulfillment.service   /etc/systemd/system/
+  sudo cp $APP/deploy/lumo-fulfillment.timer     /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now lumo-catalog-sync.timer
+  sudo systemctl enable --now lumo-games-refresh.timer
+  sudo systemctl enable --now lumo-fulfillment.timer
+  systemctl list-timers lumo-catalog-sync.timer lumo-games-refresh.timer lumo-fulfillment.timer --no-pager | tail -4
+"
+
 echo "✓ Готово"

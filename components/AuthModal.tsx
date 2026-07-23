@@ -27,31 +27,6 @@ const providers = [
       </span>
     ),
   },
-  {
-    id: "google",
-    label: "Войти через Google",
-    className: "border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--paper)]",
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
-        <path
-          fill="#4285F4"
-          d="M21.6 12.23c0-.74-.07-1.45-.19-2.13H12v4.03h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.3 2.98-7.43Z"
-        />
-        <path
-          fill="#34A853"
-          d="M12 22c2.7 0 4.96-.89 6.62-2.34l-3.23-2.51c-.9.6-2.04.95-3.39.95-2.6 0-4.8-1.75-5.59-4.11H3.08v2.59A10 10 0 0 0 12 22Z"
-        />
-        <path
-          fill="#FBBC05"
-          d="M6.41 13.99A6.02 6.02 0 0 1 6.1 12c0-.69.11-1.36.31-1.99V7.42H3.08A10 10 0 0 0 2 12c0 1.61.39 3.13 1.08 4.58l3.33-2.59Z"
-        />
-        <path
-          fill="#EA4335"
-          d="M12 5.9c1.47 0 2.79.5 3.82 1.49l2.87-2.87C16.95 2.9 14.69 2 12 2a10 10 0 0 0-8.92 5.42l3.33 2.59C7.2 7.65 9.4 5.9 12 5.9Z"
-        />
-      </svg>
-    ),
-  },
 ];
 
 function CloseIcon() {
@@ -167,7 +142,7 @@ export default function AuthModal({
                       redirectTo: window.location.href,
                     })
                   }
-                  className={`grid h-16 grid-cols-[72px_1fr_72px] items-center rounded-[18px] border px-2 text-lg font-semibold shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)] sm:h-[72px] sm:text-2xl ${provider.className}`}
+                  className={`grid h-16 grid-cols-[72px_1fr_72px] items-center rounded-[18px] border px-2 text-lg font-semibold shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)] sm:h-[72px] sm:text-2xl ${provider.className}`}
                   aria-label={provider.label}
                 >
                   <span className="flex items-center justify-center">
