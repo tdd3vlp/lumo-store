@@ -2,14 +2,14 @@ import BrandIcon from "@/components/BrandIcon";
 import HeroCarousel from "@/components/HeroCarousel";
 import type { Product } from "@/lib/products/types";
 
-// Compact panel: PlayStation, Xbox and the games catalog open their own pages,
+// Compact panel: PlayStation, Xbox and App Store open their own pages,
 // Steam anchors to its on-page block, and "Другое" jumps to the "Другие товары"
 // row (#more-cards) that holds everything else.
 const SERVICES: Array<{ type: string; label: string; href: string }> = [
   { type: "playstation", label: "PlayStation", href: "/catalog/playstation" },
   { type: "xbox", label: "Xbox", href: "/catalog/xbox" },
   { type: "steam", label: "Steam", href: "#steam-topup" },
-  { type: "games", label: "Игры на PlayStation", href: "/catalog/games" },
+  { type: "apple", label: "App Store", href: "/catalog/apple" },
   { type: "all", label: "Другое", href: "#more-cards" },
 ];
 

@@ -52,7 +52,7 @@ export default function Footer() {
             ))}
           </div>
           <p className="text-xs text-[var(--text-muted)]">
-            © {new Date().getFullYear()} Lumo
+            © {new Date().getFullYear()} Lumo Store
           </p>
         </div>
       </div>

@@ -88,7 +88,6 @@ const SECTIONS: LegalSection[] = [
       [
         "Индивидуальный предприниматель Тодоров Антон Юрьевич",
         "Регистрационный номер: 326480000013971",
-        "Поддержка: Telegram @lumocard, MAX — linku.su/lumocard, почта — support@lumo-store.ru",
       ],
     ],
   },
