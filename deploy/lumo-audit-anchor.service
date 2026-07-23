@@ -1,0 +1,19 @@
+[Unit]
+Description=Lumo — nightly digital_access_log integrity check + head-hash anchor
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=lumo
+WorkingDirectory=/home/lumo/app
+EnvironmentFile=/home/lumo/app/.env
+# Re-walks the whole hash-chain (anchored to genesis, so head truncation is
+# caught) and appends the result + current head row_hash to an off-DB log. The
+# head line is the external anchor: even someone holding AUDIT_CHAIN_HMAC_KEY
+# can't silently rewrite history without this log diverging. Copy the log
+# offsite for full effect. Exit 1 on a broken chain.
+ExecStart=/home/lumo/app/node_modules/.bin/tsx scripts/audit/verify-chain.ts
+StandardOutput=append:/var/log/lumo/audit-anchor.log
+StandardError=append:/var/log/lumo/audit-anchor.log
+TimeoutStartSec=300

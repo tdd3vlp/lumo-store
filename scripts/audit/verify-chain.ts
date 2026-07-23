@@ -59,17 +59,22 @@ const mapped = rows.map((r) => ({
 
 // Full-table scan: the first row MUST link to genesis, otherwise early rows
 // were truncated (head-truncation attack).
+const stamp = new Date().toISOString();
 const result = verifyChain(auditChainKey(), mapped, {
   expectedAnchor: CHAIN_GENESIS,
 });
 if (result.ok) {
   const head = mapped.at(-1);
-  console.log(`OK — ${mapped.length} rows, hash-chain intact`);
-  // Head hash — record this externally (offsite log/file) to also detect a
-  // future rewrite by someone who holds the app env (see hash-chain threat model).
-  if (head) console.log(`head seq=${head.seq} row_hash=${head.rowHash}`);
+  // Head hash — this line is the external anchor: recorded off-DB (nightly
+  // systemd timer → /var/log/lumo/audit-anchor.log, ideally copied offsite) it
+  // also detects a future rewrite by someone who holds the app env (see the
+  // hash-chain threat model).
+  const headStr = head
+    ? ` head seq=${head.seq} row_hash=${head.rowHash}`
+    : "";
+  console.log(`${stamp} OK — ${mapped.length} rows, hash-chain intact.${headStr}`);
 } else {
-  console.error(`BROKEN — chain fails at seq ${result.brokenSeq}`);
+  console.error(`${stamp} BROKEN — chain fails at seq ${result.brokenSeq}`);
   process.exitCode = 1;
 }
 

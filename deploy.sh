@@ -51,11 +51,16 @@ ssh -i $KEY -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAlive
   sudo cp $APP/deploy/lumo-games-refresh.timer   /etc/systemd/system/
   sudo cp $APP/deploy/lumo-fulfillment.service   /etc/systemd/system/
   sudo cp $APP/deploy/lumo-fulfillment.timer     /etc/systemd/system/
+  sudo cp $APP/deploy/lumo-audit-anchor.service  /etc/systemd/system/
+  sudo cp $APP/deploy/lumo-audit-anchor.timer    /etc/systemd/system/
+  sudo mkdir -p /var/log/lumo
+  sudo chown lumo:lumo /var/log/lumo
   sudo systemctl daemon-reload
   sudo systemctl enable --now lumo-catalog-sync.timer
   sudo systemctl enable --now lumo-games-refresh.timer
   sudo systemctl enable --now lumo-fulfillment.timer
-  systemctl list-timers lumo-catalog-sync.timer lumo-games-refresh.timer lumo-fulfillment.timer --no-pager | tail -4
+  sudo systemctl enable --now lumo-audit-anchor.timer
+  systemctl list-timers lumo-catalog-sync.timer lumo-games-refresh.timer lumo-fulfillment.timer lumo-audit-anchor.timer --no-pager | tail -5
 "
 
 echo "✓ Готово"
