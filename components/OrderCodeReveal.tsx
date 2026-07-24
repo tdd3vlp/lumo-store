@@ -98,7 +98,7 @@ export default function OrderCodeReveal({
   const guideLink = guideSlug ? (
     <Link
       href={`/instructions/${guideSlug}`}
-      className="mt-2 inline-flex items-center gap-1 rounded-full border border-[var(--line-strong)] px-3 py-1 text-xs font-bold text-[var(--ink)] transition hover:border-[var(--ink)]/40"
+      className="inline-flex items-center gap-1 rounded-full border border-[var(--line-strong)] px-3 py-1 text-xs font-bold text-[var(--ink)] transition hover:border-[var(--ink)]/40"
     >
       Инструкция по активации
       <svg
@@ -119,7 +119,7 @@ export default function OrderCodeReveal({
       <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
 
       {codes === null ? (
-        <div className="mt-1.5">
+        <div className="mt-1.5 flex flex-col items-start gap-2">
           <button
             type="button"
             onClick={() => {

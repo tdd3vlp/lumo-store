@@ -2,6 +2,7 @@
 // uses native <details> so it expands without any client JS. Facts (redeem URL,
 // 25-digit code, console/app steps) are kept as-is; wording is our own.
 
+import ActivationInstructionsAccordion from "@/components/ActivationInstructionsAccordion";
 import FaqAccordion from "@/components/FaqAccordion";
 import ImportantNote from "@/components/ImportantNote";
 
@@ -52,42 +53,35 @@ const FAQ: Array<{ q: string; a: React.ReactNode }> = [
 
 export default function XboxActivationGuide() {
   return (
-    <div className="mt-14 md:mt-20">
-      <h2 className="font-[family-name:var(--font-unbounded)] text-2xl font-bold tracking-[-0.03em] text-[var(--ink)] md:text-3xl">
-        Как активировать код Xbox Gift Card
-      </h2>
-      <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--text-muted)]">
-        После оплаты вы получите 25-значный цифровой код. Активировать его можно
-        несколькими способами — выбирайте наиболее удобный.
-      </p>
-
-      {/* Methods */}
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        {METHODS.map((m) => (
-          <div
-            key={m.n}
-            className="rounded-[20px] border border-[var(--line)] bg-[var(--paper-strong)] p-5"
-          >
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--signal)] text-sm font-extrabold text-[var(--ink)]">
-                {m.n}
-              </span>
-              <h3 className="font-bold text-[var(--ink)]">{m.title}</h3>
-            </div>
-            <ol className="mt-4 space-y-2.5 text-sm leading-6 text-[var(--text-muted)]">
-              {m.steps.map((s, i) => (
-                <li key={i} className="flex gap-2.5">
-                  <span className="font-bold text-[var(--ink)]">{i + 1}.</span>
-                  <span>{s}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        ))}
-      </div>
-
+    <div className="mt-14 md:mt-10">
       {/* Important */}
       <ImportantNote />
+
+      <ActivationInstructionsAccordion intro="После оплаты вы получите 25-значный цифровой код. Активировать его можно несколькими способами — выбирайте наиболее удобный.">
+        <div className="grid gap-4 md:grid-cols-3">
+          {METHODS.map((m) => (
+            <div
+              key={m.n}
+              className="rounded-[20px] border border-[var(--line)] bg-[var(--paper-strong)] p-5"
+            >
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--signal)] text-sm font-extrabold text-[var(--ink)]">
+                  {m.n}
+                </span>
+                <h3 className="font-bold text-[var(--ink)]">{m.title}</h3>
+              </div>
+              <ol className="mt-4 space-y-2.5 text-sm leading-6 text-[var(--text-muted)]">
+                {m.steps.map((s, i) => (
+                  <li key={i} className="flex gap-2.5">
+                    <span className="font-bold text-[var(--ink)]">{i + 1}.</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      </ActivationInstructionsAccordion>
 
       {/* FAQ */}
       <FaqAccordion items={FAQ} />

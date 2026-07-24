@@ -38,7 +38,7 @@ export default async function AdminNsGiftsPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-5xl px-4 pb-36 pt-6 md:px-6">
+      <main className="mx-auto max-w-5xl px-4 pb-12 md:pb-16 pt-6 md:px-6">
         <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
           Администрирование
         </p>

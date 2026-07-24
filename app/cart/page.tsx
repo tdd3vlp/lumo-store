@@ -72,7 +72,7 @@ function CheckIcon() {
 
 const CART_TRUST = [
   "Мгновенная доставка после оплаты",
-  "Коды пополнения и инструкция придут на почту и доступны в личном кабинете",
+  "Коды пополнения доступны в личном кабинете",
   "Дружелюбная поддержка",
 ];
 
@@ -227,7 +227,7 @@ export default function CartPage() {
     <>
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 pb-36 pt-6 md:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 pb-12 md:pb-16 pt-6 md:px-6 lg:px-8">
         <nav
           aria-label="Хлебные крошки"
           className="mb-5 flex items-center gap-2 text-sm text-[var(--text-muted)]"
@@ -438,8 +438,8 @@ export default function CartPage() {
                   <span className="font-bold text-[var(--ink)]">
                     личном кабинете
                   </span>
-                  . На почту придёт подтверждение готовности; сами данные письмом
-                  не отправляем — так безопаснее.
+                  . На почту придёт подтверждение готовности; сами данные
+                  письмом не отправляем — так безопаснее.
                 </p>
               ) : null}
               {isAuthenticated === false ? (
@@ -468,7 +468,7 @@ export default function CartPage() {
                 <p className="mt-3 text-xs leading-5 text-white/45">
                   {isAuthenticated === false
                     ? "Войдите в свой профиль, чтобы сохранить историю заказов и продолжить накопление скидок."
-                    : "Оплата картой или через СБП. После оплаты коды придут на почту и в личный кабинет."}
+                    : "Оплата картой или через СБП. После оплаты коды будут доступны в личном кабинете и на почту придет подтверждение заказа."}
                 </p>
               )}
 

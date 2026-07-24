@@ -18,7 +18,7 @@ export default function HeroFeatured({ products }: { products: Product[] }) {
     <div>
       {/* Headline + carousel. Two columns only from xl, where the fan has room;
           below that they stack so the cards never overlap the headline. */}
-      <div className="grid items-center gap-10 xl:grid-cols-2 xl:gap-16">
+      <div className="grid items-center gap-6 xl:grid-cols-2 xl:gap-16">
         <div>
           <p className="inline-flex items-center gap-2.5 text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
             <span className="h-1.5 w-6 rounded-full bg-[var(--signal-strong)]" aria-hidden="true" />

@@ -158,14 +158,28 @@ export async function createBill(
     }
   });
 
-  const res = await fetch(`${baseUrl()}/api/v1/bill/create`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env("PAYPALYCH_API_TOKEN")}`,
-      Accept: "application/json",
-    },
-    body: form,
-  });
+  const doFetch = () =>
+    fetch(`${baseUrl()}/api/v1/bill/create`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env("PAYPALYCH_API_TOKEN")}`,
+        Accept: "application/json",
+      },
+      body: form,
+    });
+
+  // The bare `fetch()` call itself (DNS/TCP/TLS to pal24.pro) occasionally
+  // rejects with a generic "fetch failed" right after a deploy restart — the
+  // process's very first outbound connection, before anything is warm. That
+  // happens before any bytes reach the server, so retrying is safe (no risk of
+  // double-creating a bill); one retry clears it instead of surfacing a raw
+  // "fetch failed" under the buyer's pay button.
+  let res: Response;
+  try {
+    res = await doFetch();
+  } catch {
+    res = await doFetch();
+  }
 
   const data = (await res.json().catch(() => null)) as CreateBillResponse | null;
   if (!res.ok || !data) throw new PayPalychApiError(res.status, data);

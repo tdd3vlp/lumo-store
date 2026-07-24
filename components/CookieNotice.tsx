@@ -30,19 +30,20 @@ function dismiss() {
 // cookies are strictly functional — auth session — so a simple acknowledgement
 // is enough, not a full consent manager with granular toggles).
 export default function CookieNotice() {
-  const visible = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const visible = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4 md:px-6">
-      <div className="mx-auto flex max-w-3xl flex-col items-start gap-3 rounded-[18px] border border-[var(--line)] bg-[var(--paper-strong)] p-4 shadow-[0_12px_32px_rgba(0,0,0,0.18)] sm:flex-row sm:items-center sm:justify-between md:p-5">
-        <p className="text-sm leading-6 text-[var(--text-muted)]">
-          Мы используем cookie для работы сайта и вашей авторизации. Подробнее — в{" "}
-          <Link
-            href="/privacy"
-            className="font-semibold text-[var(--ink)] underline underline-offset-2"
-          >
+    <div className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3 md:px-4">
+      <div className="mx-auto flex max-w-sm flex-col items-start gap-2 rounded-[14px] border border-[var(--line)] bg-[var(--paper-strong)] p-3 shadow-[0_10px_24px_rgba(0,0,0,0.16)] sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs leading-5 text-[var(--text-muted)]">
+          Мы используем cookie для работы сайта. Подробнее — в{" "}
+          <Link href="/privacy" className="font-semibold text-[var(--ink)]">
             политике конфиденциальности
           </Link>
           .
@@ -50,7 +51,7 @@ export default function CookieNotice() {
         <button
           type="button"
           onClick={dismiss}
-          className="shrink-0 self-stretch rounded-full bg-[var(--signal-strong)] px-5 py-2.5 text-sm font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal)] sm:self-auto"
+          className="shrink-0 self-stretch rounded-full bg-[var(--signal-strong)] px-4 py-1.5 text-xs font-extrabold text-[var(--ink)] transition hover:bg-[var(--signal)] sm:self-auto"
         >
           Понятно
         </button>

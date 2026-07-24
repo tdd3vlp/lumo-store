@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 // Shared "Вопросы и ответы" accordion for the activation guides. Native
 // <details> so it expands without client JS; the chevron rotates via the
 // `open:` variant. Each guide passes its own items.
-function ChevronIcon() {
+export function ChevronIcon() {
   return (
     <svg
       viewBox="0 0 24 24"

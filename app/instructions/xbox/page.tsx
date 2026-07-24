@@ -6,7 +6,7 @@ export default function XboxInstructionsPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-7xl px-4 pb-36 pt-6 md:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 pb-12 md:pb-16 pt-6 md:px-6 lg:px-8">
         <nav
           aria-label="Хлебные крошки"
           className="mb-1 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]"

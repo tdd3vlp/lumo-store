@@ -110,7 +110,7 @@ export default function HeroCarousel({ products }: { products: Product[] }) {
     >
       <div className="relative">
         <div
-          className="relative mx-auto h-[260px] w-full overflow-hidden sm:h-[310px] md:h-[360px] xl:overflow-visible"
+          className="relative mx-auto h-[230px] w-full overflow-hidden sm:h-[280px] md:h-[320px] lg:h-[350px] xl:overflow-visible"
           style={{ perspective: 1600 }}
         >
           {cards.map((item, i) => {

@@ -19,38 +19,54 @@ export const dynamic = "force-dynamic";
 
 function ShieldIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0" aria-hidden="true">
-      <path d="M12 3l7 3v5c0 4.4-3 8.5-7 10-4-1.5-7-5.6-7-10V6l7-3Z" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9.5 12l1.8 1.8L15 10" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5 shrink-0"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3l7 3v5c0 4.4-3 8.5-7 10-4-1.5-7-5.6-7-10V6l7-3Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.5 12l1.8 1.8L15 10"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-const RUB_LIMITS = `от ${MIN_TOPUP_RUB.toLocaleString("ru-RU")} ₽ до ${MAX_TOPUP_RUB.toLocaleString("ru-RU")} ₽`;
+const RUB_LIMITS = `от ${MIN_TOPUP_RUB.toLocaleString("ru-RU")}₽ до ${MAX_TOPUP_RUB.toLocaleString("ru-RU")}₽`;
 
 // Must-read purchase rules, shown compactly above the FAQ. The limits quoted
 // here are the ones actually enforced in lib/products/steam-topup.ts and
 // lib/payments/checkout.ts — keep them in sync via the shared constants.
 const RULES: Array<ReactNode> = [
   <>
-    Указывайте логин <strong className="font-bold text-[var(--ink)]">своего</strong> аккаунта.
-    Если после оплаты выяснится, что вы указали чужой логин — средства будут зачислены на
-    указанный аккаунт, возврат и отмена пополнения в этом случае невозможны.
+    Правильно указывайте логин{" "}
+    <strong className="font-bold text-[var(--ink)]">своего</strong> аккаунта.
+    Если вы указали чужой логин — средства будут зачислены на него, возврат и
+    отмена пополнения невозможны.
   </>,
   <>
-    Пополняем аккаунты России, Казахстана, Беларуси, Узбекистана, Украины, Кыргызстана,
-    Армении и других стран СНГ. Аккаунты с новых территорий (ДНР, ЛНР, Крым и т.&nbsp;п.)
-    не пополняем.
+    Пополняем аккаунты России, Казахстана, Беларуси, Узбекистана, Украины,
+    Кыргызстана, Армении и других стран СНГ. Аккаунты с новых территорий (ДНР,
+    ЛНР, Крым и прочие) не пополняем.
   </>,
   <>
-    Лимиты: <strong className="font-bold text-[var(--ink)]">{RUB_LIMITS}</strong> за
-    один платёж, не более {MAX_TOPUPS_PER_ACCOUNT_PER_DAY} пополнений одного аккаунта в
-    сутки (в любых сервисах, не только у нас) и не более{" "}
-    {MAX_USD_PER_ACCOUNT_PER_DAY}&nbsp;$ суммарно в сутки.
+    Лимиты:{" "}
+    <strong className="font-bold text-[var(--ink)]">{RUB_LIMITS}</strong> за
+    один платёж, не более {MAX_TOPUPS_PER_ACCOUNT_PER_DAY} пополнений одного
+    аккаунта в сутки и не более {MAX_USD_PER_ACCOUNT_PER_DAY}$ суммарно в сутки.
   </>,
   <>
-    Из-за колебаний курса валют зачисленная сумма может отличаться от заказанной
-    в пределах ±2&nbsp;%.
+    Из-за колебаний курса зачисленная сумма может отличаться от указанной в
+    пределах 1-2%.
   </>,
 ];
 
@@ -59,8 +75,8 @@ const FAQ_ITEMS = [
     q: "Где найти свой логин Steam?",
     a: (
       <>
-        Логин — это имя аккаунта, которое вы вводите при входе в Steam, а не отображаемый
-        ник в профиле. Посмотреть его можно на странице аккаунта:{" "}
+        Логин — это имя аккаунта, которое вы вводите при входе в Steam, а не
+        отображаемый ник в профиле. Посмотреть его можно на странице аккаунта:{" "}
         <a
           href="https://store.steampowered.com/account"
           target="_blank"
@@ -77,9 +93,9 @@ const FAQ_ITEMS = [
     q: "Аккаунты каких стран можно пополнить?",
     a: (
       <>
-        Россия, Казахстан, Беларусь, Узбекистан, Украина, Кыргызстан, Армения и другие
-        страны СНГ. Аккаунты с новых территорий (ДНР, ЛНР, Крым и т.&nbsp;п.) мы не
-        пополняем.
+        Россия, Казахстан, Беларусь, Узбекистан, Украина, Кыргызстан, Армения и
+        другие страны СНГ. Аккаунты с новых территорий (ДНР, ЛНР, Крым и прочие)
+        не пополняем.
       </>
     ),
   },
@@ -87,10 +103,10 @@ const FAQ_ITEMS = [
     q: "У меня новый аккаунт — что нужно знать?",
     a: (
       <>
-        Если аккаунт ещё ни разу не пополнялся картой, Steam при первом пополнении может
-        сменить его регион и валюту. Рекомендуем сначала пополнить минимальную сумму и
-        добавить на аккаунт несколько игр. Ответственность за смену региона со стороны
-        Steam мы взять на себя не можем.
+        Если аккаунт новый, при первом пополнении Steam может сменить его регион
+        и валюту. Рекомендуем пополнить на минимальную сумму и добавить на
+        аккаунт несколько игр. Мы не несем ответственности за смену региона со
+        стороны Steam.
       </>
     ),
   },
@@ -98,11 +114,10 @@ const FAQ_ITEMS = [
     q: "Почему зачисленная сумма может немного отличаться?",
     a: (
       <>
-        Калькулятор считает сумму к получению для аккаунтов с валютой «рубль» по
-        внутреннему курсу Steam, поэтому для них зачисление гарантировано с минимальным
-        отклонением — не более ±2&nbsp;% при движениях курса. Если валюта вашего аккаунта
-        не рубль, в моменты сильной нестабильности курса отклонение может быть заметнее.
-        Актуальные курсы Steam можно посмотреть на{" "}
+        Сумма к получению рассчитывается по внутреннему курсу Steam, поэтому
+        зачисление может иметь минимальное отклонение — около 1-2% . Если валюта
+        вашего аккаунта не рубль, при сильном колебании курса отклонение может
+        быть более заметным. Актуальные курсы Steam можно посмотреть на{" "}
         <a
           href="https://steam-currency.ru"
           target="_blank"
@@ -119,9 +134,10 @@ const FAQ_ITEMS = [
     q: "Сколько пополнений можно сделать за сутки?",
     a: (
       <>
-        Один аккаунт можно пополнять не более {MAX_TOPUPS_PER_ACCOUNT_PER_DAY} раз в сутки —
-        независимо от того, в каких сервисах сделаны пополнения. Один платёж —{" "}
-        {RUB_LIMITS}, суммарно за сутки — не более {MAX_USD_PER_ACCOUNT_PER_DAY}&nbsp;$.
+        Один аккаунт можно пополнять не более {MAX_TOPUPS_PER_ACCOUNT_PER_DAY}{" "}
+        раз в сутки — независимо от того, в каких сервисах сделаны пополнения.
+        Один платёж — {RUB_LIMITS}, суммарно за сутки — не более{" "}
+        {MAX_USD_PER_ACCOUNT_PER_DAY}$.
       </>
     ),
   },
@@ -132,7 +148,11 @@ export default async function SteamCheckoutPage({
 }: {
   searchParams: Promise<{ login?: string; amount?: string; currency?: string }>;
 }) {
-  const { login: rawLogin, amount: rawAmount, currency: rawCurrency } = await searchParams;
+  const {
+    login: rawLogin,
+    amount: rawAmount,
+    currency: rawCurrency,
+  } = await searchParams;
 
   // The form is editable, so bad or missing params just mean emptier prefills —
   // never a 404. Validation and pricing run live in the form and again at payment.
@@ -159,7 +179,7 @@ export default async function SteamCheckoutPage({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-3xl px-4 pb-24 pt-6 md:px-6 lg:px-8">
+      <main className="mx-auto max-w-3xl px-4 pb-12 pt-6 md:px-6 md:pb-16 lg:px-8">
         <Link
           href="/#steam-topup"
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--ink)]"

@@ -2,6 +2,7 @@
 // PlayStation purchase page and on /instructions/playstation. Facts (where to
 // tap, «Redeem Code», store.playstation.com) are kept as-is; wording is our own.
 
+import ActivationInstructionsAccordion from "@/components/ActivationInstructionsAccordion";
 import FaqAccordion from "@/components/FaqAccordion";
 import ImportantNote from "@/components/ImportantNote";
 
@@ -59,7 +60,10 @@ function StepCard({ title, steps }: { title?: string; steps: string[] }) {
       {title && <p className="mb-3 font-bold text-[var(--ink)]">{title}</p>}
       <ol className="space-y-2">
         {steps.map((s, i) => (
-          <li key={i} className="flex gap-2.5 text-sm leading-6 text-[var(--text-muted)]">
+          <li
+            key={i}
+            className="flex gap-2.5 text-sm leading-6 text-[var(--text-muted)]"
+          >
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--signal)] text-[11px] font-bold text-[var(--ink)]">
               {i + 1}
             </span>
@@ -73,28 +77,24 @@ function StepCard({ title, steps }: { title?: string; steps: string[] }) {
 
 export default function PlayStationActivationGuide() {
   return (
-    <div className="mt-14 md:mt-20">
-      <h2 className="font-[family-name:var(--font-unbounded)] text-2xl font-bold tracking-[-0.03em] text-[var(--ink)] md:text-3xl">
-        Как активировать код PlayStation
-      </h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-        После оплаты вы получите цифровой код. Активировать его можно с консоли или через сайт —
-        выберите удобный способ.
-      </p>
-
-      <p className="mt-6 text-sm font-bold text-[var(--ink)]">С консоли PlayStation</p>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2">
-        {CONSOLE.map((block) => (
-          <StepCard key={block.title} title={block.title} steps={block.steps} />
-        ))}
-      </div>
-
-      <p className="mt-6 text-sm font-bold text-[var(--ink)]">Через сайт PlayStation</p>
-      <div className="mt-3">
-        <StepCard steps={SITE} />
-      </div>
-
+    <div className="mt-14 md:mt-10">
       <ImportantNote />
+
+      <ActivationInstructionsAccordion intro="После оплаты вы получите цифровой код. Активировать его можно с консоли или через сайт — выберите удобный способ.">
+        <p className="text-sm font-bold text-[var(--ink)]">С консоли PlayStation</p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          {CONSOLE.map((block) => (
+            <StepCard key={block.title} title={block.title} steps={block.steps} />
+          ))}
+        </div>
+
+        <p className="mt-6 text-sm font-bold text-[var(--ink)]">
+          Через сайт PlayStation
+        </p>
+        <div className="mt-3">
+          <StepCard steps={SITE} />
+        </div>
+      </ActivationInstructionsAccordion>
 
       <FaqAccordion items={FAQ} />
     </div>

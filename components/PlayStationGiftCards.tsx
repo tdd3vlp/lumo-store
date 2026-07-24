@@ -239,16 +239,11 @@ export default function PlayStationGiftCards({
   }
 
   const activeIdx = Math.max(0, regions.indexOf(region));
-  function stepRegion(delta: number) {
-    const n = regions.length;
-    if (n === 0) return;
-    pickRegion(regions[(((activeIdx + delta) % n) + n) % n]);
-  }
 
   return (
     <div>
       {/* Header + region card carousel (centres on the selected region) */}
-      <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-10">
+      <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-10">
         <div>
           <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
             <PlayStationLogo />
@@ -277,24 +272,6 @@ export default function PlayStationGiftCards({
             perspective stage below can't reliably clip its 3D-transformed cards,
             so the edge cards would push the page wider. */}
         <div className="relative overflow-x-clip xl:overflow-x-visible">
-          <div className="absolute right-0 top-0 z-20 flex gap-2">
-            <button
-              type="button"
-              onClick={() => stepRegion(-1)}
-              aria-label="Предыдущий регион"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)]/60 transition hover:text-[var(--ink)]"
-            >
-              <ArrowIcon dir="prev" />
-            </button>
-            <button
-              type="button"
-              onClick={() => stepRegion(1)}
-              aria-label="Следующий регион"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper-strong)] text-[var(--ink)]/60 transition hover:text-[var(--ink)]"
-            >
-              <ArrowIcon dir="next" />
-            </button>
-          </div>
           <div
             className="relative mx-auto h-[264px] w-full max-w-[540px] md:h-[330px]"
             style={{ perspective: 1400 }}

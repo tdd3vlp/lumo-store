@@ -57,7 +57,7 @@ export default async function TelegramCheckoutPage({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-3xl px-4 pb-36 pt-6 md:px-6 lg:px-8">
+      <main className="mx-auto max-w-3xl px-4 pb-12 md:pb-16 pt-6 md:px-6 lg:px-8">
         <Link
           href="/telegram/stars"
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--ink)]"
