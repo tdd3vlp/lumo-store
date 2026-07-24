@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { dayBucket } from "@/lib/audit/day-bucket";
 import {
   clientSignalsFrom,
   requestContextFrom,
@@ -22,8 +23,10 @@ const perDay = createRateLimiter({ windowMs: 24 * 60 * 60_000, max: 1000 });
 // Non-authoritative browser telemetry: CODE_PAGE_OPENED, CODE_COPIED,
 // PAGE_CLOSED. The legally-significant events (WARNING_ACCEPTED / CODE_REVEALED /
 // CODE_REOPENED) are written server-side by the reveal endpoint and are NOT
-// accepted here. Idempotent on (eventType, sessionId, clientEventId) so duplicate
-// beacons / double-sends collapse to one row.
+// accepted here. Keyed by (eventType, item, UTC-day) so any number of reloads /
+// re-clicks in a day collapse to ONE row per event per item (ON CONFLICT DO
+// NOTHING) — enough for a dispute ("opened/copied at least once that day")
+// without letting the append-only journal balloon.
 export async function POST(request: Request) {
   const session = await auth();
   const customerId = session?.user?.customerId;
@@ -81,8 +84,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Dedup per (item, day). Item-less edge cases fall back to the page session
+    // so they can't collide across users. clientEventId is still required above
+    // (double-submit guard) but no longer part of the key.
+    const scope = ownedItemId ?? `session:${sessionId}`;
     await auditService.record(eventType, {
-      eventKey: `${eventType}:${sessionId}:${clientEventId}`,
+      eventKey: `${eventType}:${scope}:${dayBucket()}`,
       refs: { orderId, orderItemId: ownedItemId, customerId, productId },
       context: requestContextFrom(request),
       signals,

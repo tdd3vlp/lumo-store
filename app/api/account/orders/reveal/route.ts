@@ -13,10 +13,12 @@ import { createRateLimiter } from "@/lib/rate-limit";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// A repeat reveal (CODE_REOPENED) + WARNING_ACCEPTED use a client-chosen event id,
-// so each call appends permanent rows to the journal. Cap per customer so reopen
-// spam can't bloat the hash-chained table. Reveals are heavier than telemetry, so
-// the ceilings are tighter. Per-instance/in-memory (resets on deploy).
+// Repeat reveals (WARNING_ACCEPTED re-accept, CODE_REOPENED) are deduped by
+// (item, UTC-day) in the service, so reopen spam adds at most one row per day.
+// This limiter is a second line — a per-customer cap on request volume itself
+// (the decrypt + DB work), not on journal size. Reveals are heavier than
+// telemetry, so the ceilings are tighter. Per-instance/in-memory (resets on
+// deploy).
 const perMinute = createRateLimiter({ windowMs: 60_000, max: 20 });
 const perDay = createRateLimiter({ windowMs: 24 * 60 * 60_000, max: 300 });
 

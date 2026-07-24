@@ -1,4 +1,5 @@
 import "server-only";
+import { dayBucket } from "@/lib/audit/day-bucket";
 import { auditRepository } from "@/lib/audit/repository";
 import { auditService } from "@/lib/audit/service";
 import type { ClientSignals, RequestContext } from "@/lib/audit/types";
@@ -91,12 +92,19 @@ export async function revealGiftCardCodes(
       tx,
     );
 
-    // 4. Journal FIRST. Warning acceptance (per action) + one reveal row per
-    //    code. A deterministic key makes each code's FIRST reveal unique forever.
+    // 4. Journal FIRST. Deterministic keys keep the transfer-of-record events
+    //    exact and forever-unique (first WARNING_ACCEPTED for the item, each
+    //    code's first CODE_REVEALED), while repeat access (re-accept, re-open) is
+    //    bucketed by (item, UTC-day) so re-click/reload spam collapses to one row
+    //    per day instead of growing the append-only journal unbounded.
+    const day = dayBucket();
+    const firstEverForItem = revealed.size === 0;
     await auditService.record(
       "WARNING_ACCEPTED",
       {
-        eventKey: `WARNING_ACCEPTED:${input.orderItemId}:${input.clientEventId}`,
+        eventKey: firstEverForItem
+          ? `WARNING_ACCEPTED:${input.orderItemId}`
+          : `WARNING_ACCEPTED:${input.orderItemId}:${day}`,
         refs: { orderId, orderItemId: input.orderItemId, customerId: input.customerId, productId },
         context: input.context,
         signals: input.signals,
@@ -112,7 +120,7 @@ export async function revealGiftCardCodes(
       if (isFirst) anyFirstReveal = true;
       const eventKey = isFirst
         ? `CODE_REVEALED:${input.orderItemId}:${codeId}`
-        : `CODE_REOPENED:${input.orderItemId}:${codeId}:${input.clientEventId}`;
+        : `CODE_REOPENED:${input.orderItemId}:${codeId}:${day}`;
       await auditService.record(
         isFirst ? "CODE_REVEALED" : "CODE_REOPENED",
         {
