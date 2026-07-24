@@ -3,8 +3,8 @@
 The regional face value and the customer-facing sale price are different
 concepts:
 
-- `gift_card_denominations` stores the fixed PlayStation balance in the
-  regional currency.
+- `gift_card_denominations` stores the fixed face value (nominal) of a code in
+  its regional currency, plus its `product_type` (steam, playstation, …).
 - `gift_card_procurement_prices.purchase_cost_minor` stores our purchase cost
   in RUB kopecks for each denomination.
 - `gift_card_region_pricing_policies.markup_basis_points` stores a shared
@@ -25,5 +25,5 @@ immediately. A manual override only affects its denomination. Purchase costs
 and overrides must never be returned by the public catalog API.
 
 All order totals and payments are stored in RUB minor units. Regional face
-values remain attached to the denomination and are only used to select enough
-PlayStation balance for the games.
+values remain attached to the denomination as the nominal shown to the
+customer.

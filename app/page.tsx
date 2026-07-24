@@ -1,101 +1,79 @@
+import GamesShowcase from "@/components/GamesShowcase";
+import Header from "@/components/Header";
+import HeroFeatured from "@/components/HeroFeatured";
+import MoreGiftCards from "@/components/MoreGiftCards";
+import PlayStationGiftCards from "@/components/PlayStationGiftCards";
+import SteamTopUp from "@/components/SteamTopUp";
+import { HOME_CAROUSEL_SLUGS } from "@/lib/games/catalog";
+import { pricedGames } from "@/lib/games/pricing";
+import { allowedRegions } from "@/lib/products/brands";
+import { getPublishedProducts } from "@/lib/products/storefront";
+import type { Product } from "@/lib/products/types";
+
 export const dynamic = "force-dynamic";
 
-import Header from "@/components/Header";
-import BudgetHero from "@/components/BudgetHero";
-import BudgetGamesSection from "@/components/BudgetGamesSection";
-import RegionSections from "@/components/RegionSections";
-import TrustStrip from "@/components/TrustStrip";
-import PromoBanner from "@/components/PromoBanner";
-import { getPsnGamesForRegion, getCollectionsForRegion, getFeaturedPromoForRegion } from "@/lib/psn/storefront";
-import { newGames } from "@/data/newGames";
-import { preorderGames } from "@/data/preorderGames";
-import type { Game } from "@/data/mockGames";
-
-function customerChoiceCovers(games: Game[]) {
-  const rated = games.filter(
-    (game) => game.rating != null && (game.ratingsCount ?? 0) > 0,
-  );
-  const average =
-    rated.length > 0
-      ? rated.reduce((sum, game) => sum + (game.rating ?? 0), 0) / rated.length
-      : 0;
-  const sortedByCount = [...rated].sort(
-    (a, b) => (a.ratingsCount ?? 0) - (b.ratingsCount ?? 0),
-  );
-  const threshold =
-    sortedByCount[Math.floor(sortedByCount.length / 2)]?.ratingsCount ?? 1;
-  const score = (game: Game) => {
-    const votes = game.ratingsCount ?? 0;
-    const rating = game.rating ?? 0;
-    if (votes === 0) return 0;
-    return (votes * rating + threshold * average) / (votes + threshold);
-  };
-
-  return [...games]
-    .sort((a, b) => score(b) - score(a))
-    .slice(0, 4)
-    .map((game) => ({
-      id: game.id,
-      title: game.title,
-      image: game.image,
-    }));
-}
-
 export default async function Home() {
-  const [gamesTR, collectionsTR, featuredPromoTR] = await Promise.all([
-    getPsnGamesForRegion("TR"),
-    getCollectionsForRegion("TR"),
-    getFeaturedPromoForRegion("TR"),
-  ]);
+  let products: Product[] = [];
+  try {
+    products = await getPublishedProducts();
+  } catch {
+    products = [];
+  }
 
-  const catalog = { TR: gamesTR };
-  const collections = { TR: collectionsTR };
+  const psRegions = allowedRegions("playstation");
+  const psProducts = products.filter(
+    (p) => p.productType === "playstation" && (psRegions === null || psRegions.includes(p.region)),
+  );
 
-  const heroCovers = {
-    TR: customerChoiceCovers(gamesTR),
-  };
+  // Home carousel shows a curated subset (the catalog page lists them all),
+  // ordered as in HOME_CAROUSEL_SLUGS.
+  const allGames = await pricedGames();
+  const gameBySlug = new Map(allGames.map((g) => [g.slug, g]));
+  const games = HOME_CAROUSEL_SLUGS.map((slug) => gameBySlug.get(slug)).filter(
+    (g): g is NonNullable<typeof g> => g != null,
+  );
 
+  // The hero carousel is brand navigation built on static brand cards, so it
+  // renders regardless of catalog state — it must never blank out just because
+  // no products happen to be published yet.
   return (
-    <main className="min-h-screen pb-28 md:pb-32">
+    <main className="min-h-screen pb-12 md:pb-16">
       <Header />
-      <BudgetHero coverGames={heroCovers} />
 
-      {featuredPromoTR && (
-        <PromoBanner
-          game={featuredPromoTR.game}
-          releaseLabel={featuredPromoTR.releaseLabel}
-          ctaLabel={featuredPromoTR.ctaLabel}
-        />
+      {/* Hero */}
+      <section className="mx-auto max-w-7xl px-4 pt-10 md:px-6 md:pt-16 lg:px-8">
+        <HeroFeatured products={products} />
+      </section>
+
+      <section
+        id="steam-topup"
+        className="mx-auto mt-12 max-w-7xl scroll-mt-24 px-4 md:mt-16 md:px-6 lg:px-8"
+      >
+        <SteamTopUp />
+      </section>
+
+      {psProducts.length > 0 && (
+        <section
+          id="playstation"
+          className="mx-auto mt-12 max-w-7xl scroll-mt-24 px-4 md:mt-16 md:px-6 lg:px-8"
+        >
+          <PlayStationGiftCards products={psProducts} variant="teaser" />
+        </section>
       )}
 
-      {/* Лидеры продаж, Выбор покупателей, Новинки, Предзаказы */}
-      <div className="mt-10">
-        <RegionSections
-          catalog={catalog}
-          collections={collections}
-          staticNewGames={newGames.slice(0, 20)}
-          staticPreorders={preorderGames.slice(0, 20)}
-          part="top"
-        />
-      </div>
+      <section
+        id="more-cards"
+        className="mx-auto mt-12 max-w-7xl scroll-mt-24 px-4 md:mt-16 md:px-6 lg:px-8"
+      >
+        <MoreGiftCards />
+      </section>
 
-      <div className="mt-10">
-        <TrustStrip />
-      </div>
-
-      {/* Игры под бюджет */}
-      <div className="mt-10">
-        <BudgetGamesSection catalog={catalog} />
-      </div>
-
-      {/* Скидки недели, жанры, коллекции */}
-      <div className="mt-10">
-        <RegionSections
-          catalog={catalog}
-          collections={collections}
-          part="bottom"
-        />
-      </div>
+      <section
+        id="games"
+        className="mx-auto mt-12 max-w-7xl scroll-mt-24 px-4 md:mt-16 md:px-6 lg:px-8"
+      >
+        <GamesShowcase games={games} />
+      </section>
     </main>
   );
 }

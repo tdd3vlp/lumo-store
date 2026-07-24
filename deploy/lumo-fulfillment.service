@@ -1,0 +1,16 @@
+[Unit]
+Description=Lumo — payment fulfilment + delivery-email worker tick
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=lumo
+EnvironmentFile=/home/lumo/app/.env
+# Hits the internal worker route (runs inside the Next.js app so it reuses the
+# fulfilment + email code). Reconciles stuck paid orders and drains the
+# delivery-email queue. Idempotent — safe to run every minute.
+ExecStart=/usr/bin/curl -fsS -m 120 -X POST \
+  -H "Authorization: Bearer ${INTERNAL_WORKER_SECRET}" \
+  https://lumo-store.ru/api/internal/fulfillment
+TimeoutStartSec=150

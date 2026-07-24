@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Unbounded, Wix_Madefor_Text } from "next/font/google";
+import CookieNotice from "@/components/CookieNotice";
+import Footer from "@/components/Footer";
 import { RegionRatesProvider } from "@/lib/pricing/context";
 import { getRegionRate } from "@/lib/pricing/rates";
 import { getRegionalPricingRates } from "@/lib/pricing/rates.server";
@@ -37,7 +39,9 @@ export default async function RootLayout({
       <body>
         <RegionRatesProvider rates={{ TR: tryRate }}>
           {children}
+          <Footer />
         </RegionRatesProvider>
+        <CookieNotice />
       </body>
     </html>
   );

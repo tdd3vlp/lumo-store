@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh a few pre-order games periodically (stalest first)
+
+[Timer]
+# First run 10 min after boot, then every 30 min. With 3 games per run that
+# cycles a large catalog over a day or so, at a low, steady request rate.
+OnBootSec=10min
+OnUnitActiveSec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

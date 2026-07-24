@@ -2,10 +2,9 @@
 
 ## Components
 
-- PostgreSQL stores catalog history, orders, payments and gift-card inventory.
-- Weekly CSV files are immutable inputs. Importing the same file checksum twice
-  is a no-op.
-- Products are deduplicated by the Indian PSN product ID (`Артикул`).
+- PostgreSQL stores products, orders, payments and gift-card inventory.
+- Storefront products are gift-card denominations (`gift_card_denominations`)
+  curated from the NS.gifts wholesale catalog and flagged `is_published`.
 - Gift-card codes are encrypted with AES-256-GCM and never placed in orders,
   payment records, logs or email-outbox payloads.
 
@@ -26,20 +25,21 @@ openssl rand -base64 32
 Store the result as `GIFT_CARD_ENCRYPTION_KEY` in the deployment secret store.
 Changing this key makes existing inventory impossible to decrypt.
 
-## Weekly catalog workflow
+## Product catalog (NS.gifts)
 
-CSV files may be passed individually or as directories:
+The catalog is curated in the admin area (`/admin/ns-gifts`):
 
-```bash
-npm run catalog:import -- data/imports/2026-06-22
-```
+1. Load the live NS.gifts catalog (`getStock`) to browse available services.
+2. "Add" a service to create/link a `gift_card_denominations` row with a
+   product type, region, currency, nominal, display name, image and retail
+   price, then publish it.
+3. Buy codes for a curated denomination — a two-step, real-money action
+   (`createOrder` then `payOrder`) that encrypts the returned codes into
+   `gift_card_inventory`.
 
-The importer:
-
-1. Detects UTF-8 or Windows-1251.
-2. Parses semicolon-separated multiline CSV safely.
-3. Deduplicates products by Indian PSN ID.
-4. Preserves every collection/offer and raw source row.
+`pay_order` is not idempotent, so the buy flow requires explicit confirmation
+and never auto-retries. See `lib/ns-gifts/client.ts` and
+`lib/gift-cards/denominations.ts`.
 
 ## Gift-card inventory
 

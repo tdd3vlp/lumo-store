@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { decryptPsAccount } from "@/lib/ps-accounts/crypto";
 
 export type AccountOverview = {
   customer: {
@@ -11,13 +12,17 @@ export type AccountOverview = {
     tierCode: string;
     tierName: string;
     lifetimeSpendMinor: number;
+    /** Gift-card / account discount, in basis points (100 = 1%). */
     discountBasisPoints: number;
+    /** Wallet top-up discount, in basis points. */
+    topupDiscountBasisPoints: number;
     nextTier: {
       code: string;
       name: string;
       requiredSpendMinor: number;
       remainingSpendMinor: number;
       discountBasisPoints: number;
+      topupDiscountBasisPoints: number;
     } | null;
   };
   orders: Array<{
@@ -37,6 +42,21 @@ export type AccountOverview = {
       quantity: number;
       unitPriceMinor: number;
       denominationMinor: number | null;
+      title: string | null;
+      /** Storefront product type (apple/xbox/…) → maps to the activation guide. */
+      productType: string | null;
+      /**
+       * How many gift-card codes are delivered for this line. The codes
+       * themselves are NOT loaded here — they are decrypted on demand behind the
+       * authenticated reveal endpoint (POST /api/account/orders/reveal), so the
+       * plaintext never enters the initial page HTML/JSON. 0 until fulfilled.
+       */
+      giftCardCodeCount: number;
+      /**
+       * Delivered PlayStation-account credentials for this line (decrypted),
+       * shown directly in the ЛК. Empty for non-account lines / until fulfilled.
+       */
+      psAccountLines: string[];
     }>;
   }>;
 };
@@ -52,6 +72,7 @@ export async function getAccountOverview(
       profiles.display_name,
       accounts.lifetime_spend_minor,
       accounts.current_discount_basis_points,
+      accounts.current_topup_discount_basis_points,
       tiers.code AS tier_code,
       tiers.name AS tier_name
     FROM customers
@@ -67,7 +88,9 @@ export async function getAccountOverview(
   if (!customer) return null;
 
   const [nextTier] = await sql`
-    SELECT code, name, min_lifetime_spend_minor, discount_basis_points
+    SELECT
+      code, name, min_lifetime_spend_minor,
+      discount_basis_points, topup_discount_basis_points
     FROM loyalty_tiers
     WHERE active = true
       AND min_lifetime_spend_minor > ${customer.lifetime_spend_minor ?? 0}
@@ -103,7 +126,9 @@ export async function getAccountOverview(
             items.order_id,
             items.quantity,
             items.unit_price_minor,
-            denominations.amount_minor AS denomination_minor
+            items.title,
+            denominations.amount_minor AS denomination_minor,
+            denominations.product_type
           FROM order_items items
           LEFT JOIN gift_card_denominations denominations
             ON denominations.id = items.denomination_id
@@ -111,6 +136,62 @@ export async function getAccountOverview(
           ORDER BY items.created_at
         `
       : [];
+
+  // Gift-card codes are NOT decrypted here. We only count how many are delivered
+  // per line so the page can show the "Получить код" button; the plaintext is
+  // revealed on demand behind the authenticated, journalled reveal endpoint —
+  // so it never enters the initial HTML/JSON.
+  const itemIds = items.map((item) => item.id);
+  const countRows =
+    itemIds.length > 0
+      ? await sql`
+          SELECT order_item_id, COUNT(*)::int AS count
+          FROM fulfillment_deliveries
+          WHERE order_item_id IN ${sql(itemIds)}
+          GROUP BY order_item_id
+        `
+      : [];
+  const countByItem = new Map<string, number>();
+  for (const row of countRows) {
+    countByItem.set(String(row.order_item_id), Number(row.count));
+  }
+  const psLinesByItem = new Map<string, string[]>();
+
+  // Delivered PlayStation-account credentials for these items — decrypted here
+  // and shown directly in the account (these are NOT gated behind the reveal
+  // flow). Each field is its own line for readability. The ЛК (behind auth) is
+  // the delivery of record for accounts; they are never emailed.
+  const psRows =
+    itemIds.length > 0
+      ? await sql`
+          SELECT
+            reserved_order_item_id,
+            data_ciphertext,
+            data_iv,
+            data_auth_tag
+          FROM ps_accounts
+          WHERE status = 'delivered'
+            AND reserved_order_item_id IN ${sql(itemIds)}
+          ORDER BY delivered_at
+        `
+      : [];
+  for (const row of psRows) {
+    const fields = decryptPsAccount({
+      ciphertext: row.data_ciphertext,
+      iv: row.data_iv,
+      authTag: row.data_auth_tag,
+    });
+    const lines = [
+      `Почта: ${fields.email}`,
+      `Пароль: ${fields.password}`,
+      ...(fields.totp ? [`Коды 2FA: ${fields.totp}`] : []),
+      ...(fields.birthdate ? [`Дата рождения: ${fields.birthdate}`] : []),
+    ];
+    const key = String(row.reserved_order_item_id);
+    const list = psLinesByItem.get(key) ?? [];
+    list.push(...lines);
+    psLinesByItem.set(key, list);
+  }
 
   return {
     customer: {
@@ -126,6 +207,9 @@ export async function getAccountOverview(
       discountBasisPoints: Number(
         customer.current_discount_basis_points ?? 0,
       ),
+      topupDiscountBasisPoints: Number(
+        customer.current_topup_discount_basis_points ?? 0,
+      ),
       nextTier: nextTier
         ? {
             code: nextTier.code,
@@ -137,6 +221,9 @@ export async function getAccountOverview(
                 Number(customer.lifetime_spend_minor ?? 0),
             ),
             discountBasisPoints: Number(nextTier.discount_basis_points),
+            topupDiscountBasisPoints: Number(
+              nextTier.topup_discount_basis_points,
+            ),
           }
         : null,
     },
@@ -166,6 +253,11 @@ export async function getAccountOverview(
             item.denomination_minor === null
               ? null
               : Number(item.denomination_minor),
+          title: item.title === null ? null : String(item.title),
+          productType:
+            item.product_type === null ? null : String(item.product_type),
+          giftCardCodeCount: countByItem.get(String(item.id)) ?? 0,
+          psAccountLines: psLinesByItem.get(String(item.id)) ?? [],
         })),
     })),
   };

@@ -128,19 +128,14 @@ export default function Header() {
   const search = useStore((state) => state.search);
   const setSearch = useStore((state) => state.setSearch);
 
-  const selectedRegion = useStore((state) => state.selectedRegion);
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const cartCount = useMemo(
-    () =>
-      cart
-        .filter((item) => (item.region ?? "TR") === selectedRegion)
-        .reduce((sum, item) => sum + item.quantity, 0),
-    [cart, selectedRegion],
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart],
   );
   const favCount = favorites.length;
 
@@ -191,7 +186,7 @@ export default function Header() {
               <SearchIcon className="shrink-0 text-[var(--text-muted)]" />
               <input
                 type="search"
-                placeholder="Найти игру"
+                placeholder="Найти карту или код"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
@@ -226,7 +221,7 @@ export default function Header() {
             <Link
               href="/favorites"
               className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line-inverse)] text-white/80 transition hover:text-white hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--signal)]"
-              aria-label={`Избранное${favCount > 0 ? `, ${favCount} игр` : ""}`}
+              aria-label={`Избранное${favCount > 0 ? `, ${favCount} поз.` : ""}`}
             >
               <HeartIcon />
               {favCount > 0 && (
@@ -321,7 +316,7 @@ export default function Header() {
               <SearchIcon className="text-[var(--text-muted)] shrink-0" />
               <input
                 type="search"
-                placeholder="Поиск игр и карт"
+                placeholder="Поиск карт и кодов"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"

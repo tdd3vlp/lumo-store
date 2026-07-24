@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the Lumo audit-journal integrity check + anchor nightly
+
+[Timer]
+# Nightly at 04:00, with jitter so it never lines up with other jobs. Persistent
+# catches up a missed run after downtime.
+OnCalendar=*-*-* 04:00:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -3,59 +3,47 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
+// Retained purely as the key type for region-scoped FX/pricing helpers
+// (lib/pricing/context.tsx, lib/gift-cards/regions.ts). The storefront no
+// longer exposes a global region switcher — region is per-product metadata now.
+export type StoreRegion = "TR";
+
 export type CartItem = {
-  id: number;
-  gameId: number;
-  region: StoreRegion;
+  // A cart line is one gift-card denomination (already a distinct SKU), so the
+  // denomination id is the whole key; quantity handles repeats.
+  denominationId: string;
+  productType: string;
   title: string;
-  edition?: string;
-  price: number | null;
-  originalPrice?: number | null;
-  formattedPrice: string | null;
+  region: string;
+  currency: string;
+  amountMajor: number;
+  // Sale price the customer pays, in ruble minor units (kopecks). Null when a
+  // denomination has no configured retail price yet.
+  priceMinor: number | null;
   image: string;
   quantity: number;
 };
 
-export type StoreRegion = "TR";
-
-// A cart line is keyed by (game, edition). This id encodes both so different
-// editions of the same game stay distinct lines, while every entry point that
-// adds the *same* game+edition collapses onto one line. editionIndex 0 is the
-// default/standard edition used by all quick-add surfaces (cards, favorites,
-// "fits the remainder" suggestions); the game page passes the selected edition's
-// index. Read `gameId` (not `id`) to answer "is this game already in the cart".
-export function editionCartId(gameId: number, editionIndex = 0): number {
-  return gameId * 100 + editionIndex + 1;
-}
-
-type AddToCartPayload = {
-  id: number;
-  gameId?: number;
-  region?: StoreRegion;
-  title: string;
-  edition?: string;
-  price: number | null;
-  originalPrice?: number | null;
-  formattedPrice?: string | null;
-  image: string;
-};
+type AddToCartPayload = Omit<CartItem, "quantity">;
 
 type StoreState = {
-  favorites: number[];
+  favorites: string[]; // denominationId[]
   cart: CartItem[];
   search: string;
-  selectedBudgets: Record<StoreRegion, number>;
-  selectedRegion: StoreRegion;
+  // Desired account balance in ruble minor units (kopecks) — drives the budget
+  // hero on the home page.
+  selectedBudget: number;
 
-  toggleFavorite: (id: number) => void;
-  addToCart: (game: AddToCartPayload) => void;
-  decreaseCartItem: (id: number, region?: StoreRegion) => void;
-  removeFromCart: (id: number, region?: StoreRegion) => void;
-  clearCart: (region?: StoreRegion) => void;
+  toggleFavorite: (denominationId: string) => void;
+  addToCart: (item: AddToCartPayload) => void;
+  decreaseCartItem: (denominationId: string) => void;
+  removeFromCart: (denominationId: string) => void;
+  clearCart: () => void;
   setSearch: (value: string) => void;
   setSelectedBudget: (budget: number) => void;
-  setSelectedRegion: (region: StoreRegion) => void;
 };
+
+const DEFAULT_BUDGET_MINOR = 300000; // 3 000 ₽
 
 export const useStore = create<StoreState>()(
   persist(
@@ -63,117 +51,96 @@ export const useStore = create<StoreState>()(
       favorites: [],
       cart: [],
       search: "",
-      selectedBudgets: { TR: 1000 },
-      selectedRegion: "TR",
+      selectedBudget: DEFAULT_BUDGET_MINOR,
 
-      toggleFavorite: (id) => {
+      toggleFavorite: (denominationId) => {
         const { favorites } = get();
-        const exists = favorites.includes(id);
+        const exists = favorites.includes(denominationId);
 
         set({
           favorites: exists
-            ? favorites.filter((favoriteId) => favoriteId !== id)
-            : [...favorites, id],
+            ? favorites.filter((id) => id !== denominationId)
+            : [...favorites, denominationId],
         });
       },
 
-      addToCart: (game) => {
+      addToCart: (item) => {
         const { cart } = get();
-        const region = game.region ?? "TR";
         const existing = cart.find(
-          (item) => item.id === game.id && (item.region ?? "TR") === region,
+          (line) => line.denominationId === item.denominationId,
         );
 
         if (existing) {
           set({
-            cart: cart.map((item) =>
-              item.id === game.id && (item.region ?? "TR") === region
-                ? { ...item, quantity: item.quantity + 1 }
-                : item,
+            cart: cart.map((line) =>
+              line.denominationId === item.denominationId
+                ? { ...line, quantity: line.quantity + 1 }
+                : line,
             ),
           });
           return;
         }
 
-        set({
-          cart: [
-            ...cart,
-            {
-              id: game.id,
-              gameId: game.gameId ?? game.id,
-              region,
-              title: game.title,
-              edition: game.edition,
-              price: game.price,
-              originalPrice: game.originalPrice ?? null,
-              formattedPrice: game.formattedPrice ?? null,
-              image: game.image,
-              quantity: 1,
-            },
-          ],
-        });
+        set({ cart: [...cart, { ...item, quantity: 1 }] });
       },
 
-      decreaseCartItem: (id, region = "TR") => {
+      decreaseCartItem: (denominationId) => {
         const { cart } = get();
         const existing = cart.find(
-          (item) => item.id === id && (item.region ?? "TR") === region,
+          (line) => line.denominationId === denominationId,
         );
 
         if (!existing) return;
 
         if (existing.quantity === 1) {
           set({
-            cart: cart.filter(
-              (item) => item.id !== id || (item.region ?? "TR") !== region,
-            ),
+            cart: cart.filter((line) => line.denominationId !== denominationId),
           });
           return;
         }
 
         set({
-          cart: cart.map((item) =>
-            item.id === id && (item.region ?? "TR") === region
-              ? { ...item, quantity: item.quantity - 1 }
-              : item,
+          cart: cart.map((line) =>
+            line.denominationId === denominationId
+              ? { ...line, quantity: line.quantity - 1 }
+              : line,
           ),
         });
       },
 
-      removeFromCart: (id, region = "TR") => {
-        const { cart } = get();
-
-        set({
-          cart: cart.filter(
-            (item) => item.id !== id || (item.region ?? "TR") !== region,
-          ),
-        });
-      },
-
-      clearCart: (region) =>
+      removeFromCart: (denominationId) =>
         set(({ cart }) => ({
-          cart: region
-            ? cart.filter((item) => (item.region ?? "TR") !== region)
-            : [],
+          cart: cart.filter((line) => line.denominationId !== denominationId),
         })),
+
+      clearCart: () => set({ cart: [] }),
 
       setSearch: (value) => set({ search: value }),
 
-      setSelectedBudget: (budget) =>
-        set(({ selectedBudgets, selectedRegion }) => ({
-          selectedBudgets: { ...selectedBudgets, [selectedRegion]: budget },
-        })),
-
-      setSelectedRegion: (region) => set({ selectedRegion: region }),
+      setSelectedBudget: (budget) => set({ selectedBudget: budget }),
     }),
     {
       name: "lumo-store",
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      // v1 (and earlier) stored game-id-keyed carts/favorites (numeric IDs)
+      // that are meaningless against the denomination-id product model. Hard
+      // reset on upgrade rather than leave corrupt shapes feeding the new
+      // selectors — nothing was purchasable before, so there is nothing to lose.
+      migrate: (persisted, version) => {
+        if (version < 2) {
+          return {
+            favorites: [],
+            cart: [],
+            selectedBudget: DEFAULT_BUDGET_MINOR,
+          } as Partial<StoreState>;
+        }
+        return persisted as Partial<StoreState>;
+      },
       partialize: (state) => ({
         favorites: state.favorites,
         cart: state.cart,
-        selectedBudgets: state.selectedBudgets,
-        selectedRegion: state.selectedRegion,
+        selectedBudget: state.selectedBudget,
       }),
     },
   ),
